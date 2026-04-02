@@ -46,4 +46,9 @@ public class CategoryController {
 		categoryService.deleteCatory(id);
 		return ResponseEntity.ok("deleted successfully : " + id);
 	}
+
+	@GetMapping("/{category-id}/validate")
+	public String validateCategory(@PathVariable("category-id") Long id) {
+		return categoryService.isExistCatgory(id);
+	}
 }
