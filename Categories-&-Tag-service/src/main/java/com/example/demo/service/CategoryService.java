@@ -17,4 +17,6 @@ public interface CategoryService {
 
 	public Page<Categories> getAllCategories(int page, String sortBy);
 
+	
+
 }

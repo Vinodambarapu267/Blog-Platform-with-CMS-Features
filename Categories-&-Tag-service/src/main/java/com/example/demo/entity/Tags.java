@@ -19,10 +19,15 @@ public class Tags {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 
-	private Long id;
+	private Long tagId;
 	@Column(unique = true)
 	private String tagName;
 	@Column(unique = true)
 	private String tagSlug;
-	private Integer post_count = 0;
+	@Column(nullable = false)
+	private int postCount = 0;
+
+	public Tags(String tagName) {
+		this.tagName = tagName;
+	}
 }
