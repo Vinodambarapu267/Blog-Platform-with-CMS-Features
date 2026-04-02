@@ -32,15 +32,10 @@ public class AuthController {
 
 	@PostMapping("/token")
 	public String getToken(@RequestBody AuthRequest authRequest) {
-	    System.out.println("Email: " + authRequest.getUsername());
-	    System.out.println("Password: " + authRequest.getPassword());
-	    
 	    Authentication authenticate = authenticationManager.authenticate(
 	            new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword()));
 	    
-	    System.out.println("Is Authenticated: " + authenticate.isAuthenticated());
-	    System.out.println("Principal: " + authenticate.getPrincipal());
-	    
+	  
 	    if (authenticate.isAuthenticated()) {
 	        return service.generateToken(authRequest.getUsername());
 	    } else {
