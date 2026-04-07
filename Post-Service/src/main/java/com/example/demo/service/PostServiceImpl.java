@@ -1,0 +1,141 @@
+package com.example.demo.service;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.example.demo.dto.PostDto;
+import com.example.demo.entity.Post;
+import com.example.demo.entity.PostLikes;
+import com.example.demo.repository.PostLikeRepository;
+import com.example.demo.repository.PostRepostiory;
+import com.example.demo.utility.PostStatus;
+
+@Service
+public class PostServiceImpl implements PostService {
+	@Autowired
+	private PostRepostiory postRepostiory;
+	@Autowired
+	private PostLikeRepository likeRepository;
+
+	@Override
+	public Post findBySlug(String slug) {
+		Post post = postRepostiory.findBySlug(slug)
+				.orElseThrow(() -> new RuntimeException("post not found by this slug {}" + slug));
+
+		return post;
+	}
+
+	@Override
+	public Post createPost(Post post) {
+		Optional<Post> bySlug = postRepostiory.findBySlug(post.getSlug());
+		if (bySlug.isPresent()) {
+			throw new RuntimeException("Post already exist ");
+		}
+		Post newPost = new Post();
+		newPost.setTitle(post.getTitle());
+		newPost.setSlug(post.getSlug());
+		newPost.setContent(post.getContent());
+		newPost.setExcerpt(post.getExcerpt());
+		newPost.setStatus(post.getStatus());
+		newPost.setAuthorId(post.getAuthorId());
+		newPost.setCategoryId(post.getCategoryId());
+		newPost.setView_count(0);
+		newPost.setLike_count(0);
+		Post save = postRepostiory.save(newPost);
+		return save;
+	}
+
+	@Override
+	public Post updatePost(Long postId, PostDto postDto) {
+		Post existedPost = postRepostiory.findById(postId)
+				.orElseThrow(() -> new RuntimeException("post not found by this post id"));
+
+		existedPost.setTitle(postDto.getTitle());
+		existedPost.setSlug(postDto.getSlug());
+		existedPost.setContent(postDto.getContent());
+		existedPost.setExcerpt(postDto.getExcerpt());
+		existedPost.setStatus(postDto.getStatus());
+		existedPost.setAuthorId(postDto.getAuthorId());
+		existedPost.setCategoryId(postDto.getCategoryId());
+		existedPost.setStatus(updatStatus(postDto.getStatus().name().toUpperCase()));
+		Post updatePost = postRepostiory.save(existedPost);
+		return updatePost;
+	}
+
+	@Override
+	public String deletePost(Long postId) {
+		Post existedPost = postRepostiory.findById(postId)
+				.orElseThrow(() -> new RuntimeException("post not found by this post id"));
+		postRepostiory.delete(existedPost);
+
+		return "deleted successfully";
+	}
+
+	@Override
+	public String updatePostStatus(Long postId, String status) {
+		Post post = postRepostiory.findById(postId)
+				.orElseThrow(() -> new RuntimeException("post not found by this post id"));
+		post.setStatus(updatStatus(status));
+		return "Post updated to this status : " + status;
+	}
+
+	@Override
+	public Post addLike(Long postId, PostLikes likes) {
+		Post post = postRepostiory.findById(postId).orElseThrow(() -> new RuntimeException("Post not found"));
+
+		Long userId = likes.getUserId();
+
+
+		Optional<PostLikes> existingLikeOpt = likeRepository.findByPostAndUserId(post, userId);
+
+		int currentLikes = post.getLike_count() == null ? 0 : post.getLike_count();
+
+		if (existingLikeOpt.isPresent()) {
+			PostLikes existingLike = existingLikeOpt.get();
+			likeRepository.delete(existingLike);
+			post.setLike_count(Math.max(0, currentLikes - 1));
+		} else {
+			PostLikes postLike = new PostLikes();
+			postLike.setPost(post);
+			postLike.setUserId(userId);
+			likeRepository.save(postLike);
+
+			post.setLike_count(currentLikes + 1);
+		}
+
+		return postRepostiory.save(post);
+	}
+
+	@Override
+	public List<Post> findAllPost() {
+		List<Post> all = postRepostiory.findAll();
+		if (all.isEmpty()) {
+			throw new RuntimeException("not post available");
+		}
+
+		return all;
+	}
+
+	@Override
+	public int totalLikes(Long postId) {
+		Post post = postRepostiory.findById(postId)
+				.orElseThrow(() -> new RuntimeException("post not found by this post id"));
+		Integer like_count = post.getLike_count();
+		return like_count;
+	}
+
+	private static PostStatus updatStatus(String status) {
+		return switch (status) {
+		case "ARCHIVED" -> PostStatus.ARCHIVED;
+		case "DELETED" -> PostStatus.DELETED;
+		case "DRAFT" -> PostStatus.DRAFT;
+		case "PUBLISHED" -> PostStatus.PUBLISHED;
+		case "REVIEW" -> PostStatus.REVIEW;
+		default -> throw new IllegalArgumentException("Enter valid status");
+		};
+	}
+
+}

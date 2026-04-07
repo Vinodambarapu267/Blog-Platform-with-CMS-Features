@@ -53,4 +53,5 @@ public class Post {
 	@CreationTimestamp
 	@Column(nullable = false)
 	private Instant updatedAt;
+
 }

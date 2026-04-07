@@ -4,9 +4,9 @@ import java.time.Instant;
 
 import org.hibernate.annotations.CreationTimestamp;
 
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -25,11 +25,10 @@ import lombok.NoArgsConstructor;
 public class PostLikes {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long likesId;
-	@ManyToOne(cascade = CascadeType.ALL)
-	@JoinColumn(name = "post_id")
-	@Column(nullable = false)
-	private Long postId;
+	private Long likeId;
+	@ManyToOne(fetch = FetchType.LAZY, optional = false)
+	@JoinColumn(name = "post_id", nullable = false)
+	private Post post;
 	@Column(nullable = false)
 	private Long userId;
 	@CreationTimestamp
