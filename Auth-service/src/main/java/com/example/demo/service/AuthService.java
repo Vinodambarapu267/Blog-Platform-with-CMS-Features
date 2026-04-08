@@ -5,6 +5,9 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.example.demo.Exception.TokenInvalidException;
+import com.example.demo.Exception.UserCredentialInvalidExcpetion;
+import com.example.demo.Exception.UserNotFoundException;
 import com.example.demo.entity.UserCredential;
 import com.example.demo.repository.UserCredentialRepository;
 
@@ -21,9 +24,7 @@ public class AuthService {
 
 	@PreAuthorize("hasRole('SUPER_ADMIN','ADMIN')")
 	public String saveUser(UserCredential credential) {
-		System.out.println("Raw password before encode: " + credential.getPassword());
 		credential.setPassword(passwordEncoder.encode(credential.getPassword()));
-		System.out.println("Stored hash: " + credential.getPassword());
 		repository.save(credential);
 		return "User added successfully";
 	}
@@ -37,15 +38,16 @@ public class AuthService {
 	@PreAuthorize("isAuthenticated()")
 	public void validateToken(String token) {
 		if (!jwtUtil.validateToken(token)) {
-			throw new RuntimeException("Token is invalid or expired");
+			throw new TokenInvalidException("Token is invalid or expired");
 		}
 	}
 
 	@PreAuthorize("permitAll()")
 	public String login(String email, String password) {
-		UserCredential user = repository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
+		UserCredential user = repository.findByEmail(email)
+				.orElseThrow(() -> new UserNotFoundException("User not found"));
 		if (!passwordEncoder.matches(password, user.getPassword())) {
-			throw new RuntimeException("Invalid password");
+			throw new UserCredentialInvalidExcpetion("Invalid password");
 		}
 		String token = jwtUtil.generateToken(user.getUsername());
 

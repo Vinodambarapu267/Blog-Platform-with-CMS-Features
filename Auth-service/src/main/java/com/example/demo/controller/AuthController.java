@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.demo.Exception.InvalidAccessException;
 import com.example.demo.dto.AuthRequest;
 import com.example.demo.dto.LoginDto;
 import com.example.demo.entity.UserCredential;
@@ -32,15 +33,14 @@ public class AuthController {
 
 	@PostMapping("/token")
 	public String getToken(@RequestBody AuthRequest authRequest) {
-	    Authentication authenticate = authenticationManager.authenticate(
-	            new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword()));
-	    
-	  
-	    if (authenticate.isAuthenticated()) {
-	        return service.generateToken(authRequest.getUsername());
-	    } else {
-	        throw new RuntimeException("invalid access");
-	    }
+		Authentication authenticate = authenticationManager.authenticate(
+				new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword()));
+
+		if (authenticate.isAuthenticated()) {
+			return service.generateToken(authRequest.getUsername());
+		} else {
+			throw new InvalidAccessException("invalid access");
+		}
 	}
 
 	@GetMapping("/validate")
@@ -51,7 +51,7 @@ public class AuthController {
 
 	@PostMapping("/login")
 	public ResponseEntity<String> login(@RequestBody LoginDto dto) {
-		String response = service.login(dto.getEmail(),dto.getPassword());
+		String response = service.login(dto.getEmail(), dto.getPassword());
 		return ResponseEntity.ok(response);
 	}
 }
