@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import java.net.HttpURLConnection;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +21,8 @@ import com.example.demo.dto.TagResolveRequest;
 import com.example.demo.dto.TagResponse;
 import com.example.demo.entity.Tags;
 import com.example.demo.service.TagService;
+import com.example.demo.utility.ResponseMessage;
+import com.example.demo.utility.ResponseStatus;
 
 @RestController
 @RequestMapping("/api/v1/tags")
@@ -30,7 +33,12 @@ public class TagsController {
 	@PostMapping("/autocreate")
 	public ResponseEntity<?> createTags(@RequestBody TagResolveRequest request) {
 		List<TagResponse> tags = tagService.resolveTags(request.names());
-		return ResponseEntity.ok(tags);
+		if (tags.isEmpty()) {
+			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_NOT_FOUND,
+					ResponseStatus.FAILURE.name(), "tag creating failed"));
+		}
+		return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_CREATED, ResponseStatus.SUCCESS.name(),
+				"Tag Created successfully", tags));
 	}
 
 	@DeleteMapping("/delete/{tag-id}")
@@ -42,10 +50,14 @@ public class TagsController {
 	@GetMapping
 	public ResponseEntity<?> findAll() {
 		List<Tags> all = tagService.findAll();
-		System.err.println(all.size());
-		return ResponseEntity.ok(all);
+		
+		if (all.isEmpty()) {
+			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_NOT_FOUND,
+					ResponseStatus.FAILURE.name(), "Tags retriving failed.."));
+		}
+		return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_CREATED, ResponseStatus.SUCCESS.name(),
+				"All Tags Retrived successfully", all));
 	}
-
 	@GetMapping("/popular")
 	public ResponseEntity<Page<Tags>> getPopularTags(
 	        @RequestParam(defaultValue = "0") int page,

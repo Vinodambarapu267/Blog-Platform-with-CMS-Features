@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.demo.dto.TagResponse;
 import com.example.demo.entity.Tags;
+import com.example.demo.exception.TagNotFoundException;
 import com.example.demo.repository.TagsRepository;
 import com.example.demo.service.TagService;
 
@@ -61,7 +62,7 @@ public class TagsServiceImpl implements TagService {
 
 	@Override
 	public void deleteTag(Long id) {
-		Tags tags = repository.findById(id).orElseThrow(() -> new RuntimeException("Tag not found"));
+		Tags tags = repository.findById(id).orElseThrow(() -> new TagNotFoundException("Tag not found"));
 		repository.delete(tags);
 	}
 
@@ -69,7 +70,7 @@ public class TagsServiceImpl implements TagService {
 	public List<Tags> findAll() {
 		List<Tags> allTags = repository.findAll();
 		if (allTags.isEmpty()) {
-			throw new RuntimeException("No tages found");
+			throw new TagNotFoundException("No tages found");
 		}
 		return allTags;
 	}
