@@ -1,9 +1,11 @@
 package com.example.demo.controller;
 
+import java.net.HttpURLConnection;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,6 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.demo.dto.UserDto;
 import com.example.demo.entity.User;
 import com.example.demo.service.UserService;
+import com.example.demo.utility.ResponseMessage;
+import com.example.demo.utility.ResponseStatus;
 import com.example.demo.utility.UserStatus;
 
 @RestController
@@ -28,38 +32,59 @@ public class UsersControllers {
 	@PostMapping("/createuser")
 	public ResponseEntity<?> createUser(@RequestBody User user) {
 		User save = userService.createUser(user);
-		return ResponseEntity.ok(save);
+		if (user == null) {
+			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_CREATED, ResponseStatus.FAILURE.name(),
+					"User creating failed"));
+		}
+		return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_CREATED, ResponseStatus.SUCCESS.name(),
+				"User created successfully", save));
 	}
 
 	@PutMapping("/updateuser/{userId}")
 	public ResponseEntity<?> updateUser(@PathVariable Long userId, @RequestBody UserDto userDto) {
 		User updateUser = userService.updateUser(userId, userDto);
-		return ResponseEntity.ok(updateUser);
+		if (updateUser == null) {
+			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_CREATED, ResponseStatus.FAILURE.name(),
+					"User updating failed"));
+		}
+		return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_CREATED, ResponseStatus.SUCCESS.name(),
+				"User updated successfully", updateUser));
 	}
 
 	@GetMapping("/findbyname/{username}")
 	public ResponseEntity<?> findByUsername(@PathVariable String username) {
 		User user = userService.findByUserName(username);
-		return ResponseEntity.ok(user);
+		if (user == null) {
+			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_CREATED, ResponseStatus.FAILURE.name(),
+					"User retriving failed"));
+		}
+		return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_CREATED, ResponseStatus.SUCCESS.name(),
+				"User found successfully", user));
 	}
 
-	@GetMapping("/deleteuser/{username}")
-	public String deleteUser(String username) {
+	@DeleteMapping("/deleteuser/{username}")
+	public String deleteUser(@PathVariable String username) {
 		userService.deleteUser(username);
+	
 		return "user deleted successfully";
 	}
 
 	@PutMapping("/updateStatus")
-	public ResponseEntity<?> updateStatus(@RequestParam String username, String status) {
+	public ResponseEntity<?> updateStatus(@RequestParam String username,@RequestParam String status) {
 		User updateStatus = userService.updateStatus(username, status);
-		
+
 		return ResponseEntity.ok(updateStatus);
 	}
 
 	@GetMapping
 	public ResponseEntity<?> findAll() {
 		List<User> allUsers = userService.findAll();
-		return ResponseEntity.ok(allUsers);
+		if (allUsers == null) {
+			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_CREATED, ResponseStatus.FAILURE.name(),
+					"Users retiving failed"));
+		}
+		return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_CREATED, ResponseStatus.SUCCESS.name(),
+				"All Users retrivied successfully", allUsers));
 	}
-	
+
 }

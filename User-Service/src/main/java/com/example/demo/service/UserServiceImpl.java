@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 
 import com.example.demo.dto.UserDto;
 import com.example.demo.entity.User;
+import com.example.demo.excpetion.UserALreadyExistException;
+import com.example.demo.excpetion.UserNotFoundException;
 import com.example.demo.repository.UsersRepository;
 import com.example.demo.utility.UserStatus;
 
@@ -19,7 +21,6 @@ import jakarta.transaction.Transactional;
 @Service
 public class UserServiceImpl implements UserService {
 
-
 	@Autowired
 	private UsersRepository repository;
 
@@ -27,7 +28,7 @@ public class UserServiceImpl implements UserService {
 	public User createUser(User user) {
 		Optional<User> existingUser = repository.findByUsername(user.getUsername());
 		if (existingUser.isPresent()) {
-			throw new RuntimeException("User already Existed");
+			throw new UserALreadyExistException("User already Existed");
 		}
 		User newUser = new User();
 		newUser.setBio(user.getBio());
@@ -48,7 +49,8 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	public User updateUser(Long userId, UserDto userDto) {
-		User existedUser = repository.findById(userId).orElseThrow(() -> new RuntimeException("User not Found"));
+		User existedUser = repository.findById(userId)
+				.orElseThrow(() -> new UserNotFoundException("User not found :" + userId));
 
 		existedUser.setUsername(userDto.getUsername());
 		existedUser.setDisplayName(userDto.getDisplayName());
@@ -66,7 +68,6 @@ public class UserServiceImpl implements UserService {
 		if (userDto.getSocialLinks() != null) {
 			existedUser.getSocialLinks().putAll(userDto.getSocialLinks());
 		}
-
 		return repository.save(existedUser);
 
 	}
@@ -74,14 +75,15 @@ public class UserServiceImpl implements UserService {
 	@Override
 	public User findByUserName(String username) {
 		User user = repository.findByUsername(username)
-				.orElseThrow(() -> new RuntimeException("User not Found with this name : " + username));
+				.orElseThrow(() -> new UserNotFoundException("User not Found with this name : " + username));
 		return user;
 	}
 
 	@Override
 	public void deleteUser(String username) {
 		User user = repository.findByUsername(username)
-				.orElseThrow(() -> new RuntimeException("User not Found with this name : " + username));
+				.orElseThrow(() -> new UserNotFoundException("User not Found with this name : " + username));
+
 		repository.delete(user);
 	}
 
@@ -90,9 +92,8 @@ public class UserServiceImpl implements UserService {
 	@Transactional
 	public User updateStatus(String username, String status) {
 		User user = repository.findByUsername(username)
-				.orElseThrow(() -> new RuntimeException("User not Found with this name : " + username));
+				.orElseThrow(() -> new UserNotFoundException("User not Found with this name : " + username));
 		user.setStatus(updateStatus(status));
-		System.err.println("service"+user.getStatus());
 		return repository.save(user);
 	}
 
@@ -100,19 +101,18 @@ public class UserServiceImpl implements UserService {
 	public List<User> findAll() {
 		List<User> allUsers = repository.findAll();
 		if (allUsers.isEmpty()) {
-			new RuntimeException("no Users in database");
+			new UserNotFoundException("no Users in database");
 		}
 		return allUsers;
 	}
 
 	private UserStatus updateStatus(String status) {
-		System.err.println("private: "+status);
+
 		return switch (status.toUpperCase()) {
 		case "ACTIVE" -> UserStatus.ACTIVE;
 		case "INACTIVE" -> UserStatus.INACTIVE;
 		case "SUSPENDED" -> UserStatus.SUSPENDED;
 		case "BLOCKED" -> UserStatus.BLOCKED;
-
 		default -> throw new IllegalArgumentException("Unexpected value: " + status);
 		};
 
