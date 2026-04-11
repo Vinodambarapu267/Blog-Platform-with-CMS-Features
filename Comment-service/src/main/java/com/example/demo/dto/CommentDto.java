@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 public class CommentDto {
 	
 	
-	@Column(unique = true)
+
 	private Long authorId;
 	@Column(unique = true)
 	private Long parentId;

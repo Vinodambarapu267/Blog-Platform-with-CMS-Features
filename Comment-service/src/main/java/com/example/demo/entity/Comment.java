@@ -33,15 +33,11 @@ public class Comment {
 	private Long commentId;
 	@Column(nullable = false)
 	private Long postId;
-
-	@Column(unique = true)
+	@Column(nullable = false)
 	private Long authorId;
-	@Column(unique = true)
+	@Column(nullable = false)
 	private Long parentId;
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "parent_id")
-	private Comment parent;
-	@Column(nullable = false, columnDefinition = "TEXT")
+	@Column(nullable = false)
 	private String content;
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false)
