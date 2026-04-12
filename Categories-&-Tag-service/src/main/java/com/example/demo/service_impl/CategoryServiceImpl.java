@@ -1,8 +1,9 @@
 package com.example.demo.service_impl;
 
-import java.util.Optional;
-
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -16,7 +17,10 @@ import com.example.demo.exception.SlugAlreadyExistException;
 import com.example.demo.repository.CategoryRepository;
 import com.example.demo.service.CategoryService;
 
+import jakarta.transaction.Transactional;
+
 @Service
+
 public class CategoryServiceImpl implements CategoryService {
 
 	@Autowired
@@ -45,6 +49,7 @@ public class CategoryServiceImpl implements CategoryService {
 		return categoryRepository.save(category);
 	}
 
+	@CachePut(value = "category", key = "#cId")
 	@Override
 	public Categories updateCategories(Long cId, CategoryDto category) {
 		Categories existedCategory = categoryRepository.findById(cId)
@@ -67,12 +72,14 @@ public class CategoryServiceImpl implements CategoryService {
 	}
 
 	@Override
+	@CacheEvict(value = "deleteCategory", key = "#cId")
 	public void deleteCatory(Long cId) {
 		Categories category = categoryRepository.findById(cId)
 				.orElseThrow(() -> new CategoryNotFoundException("Category not Found"));
 		categoryRepository.delete(category);
 	}
 
+	@Cacheable(value = "category", key = "#cId")
 	@Override
 	public String isExistCatgory(Long cId) {
 		boolean existsById = categoryRepository.existsById(cId);
@@ -80,6 +87,8 @@ public class CategoryServiceImpl implements CategoryService {
 	}
 
 	@Override
+	@Cacheable(value = "allCategories", key = "'all'")
+	@Transactional()
 	public Page<Categories> getAllCategories(int page, String sortBy) {
 		Pageable pageable = PageRequest.of(page, 10, Sort.by(sortBy).ascending()); // ← page=1, size=10
 		Page<Categories> categories = categoryRepository.findAll(pageable);

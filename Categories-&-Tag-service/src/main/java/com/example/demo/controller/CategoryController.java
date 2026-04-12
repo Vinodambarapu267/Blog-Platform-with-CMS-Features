@@ -4,6 +4,7 @@ import java.net.HttpURLConnection;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,6 +21,8 @@ import com.example.demo.entity.Categories;
 import com.example.demo.service.CategoryService;
 import com.example.demo.utility.ResponseMessage;
 import com.example.demo.utility.ResponseStatus;
+
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @RestController
 @RequestMapping("/api/v1/categories")
@@ -50,6 +53,7 @@ public class CategoryController {
 	}
 
 	@GetMapping
+	@RateLimiter(name = "myRateLimiter", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<?> getAllCategories(@RequestParam int page, @RequestParam String soryBy) {
 		Page<Categories> allCategories = categoryService.getAllCategories(page, soryBy);
 		if (allCategories == null) {
@@ -66,7 +70,13 @@ public class CategoryController {
 	}
 
 	@GetMapping("/{category-id}/validate")
+	@RateLimiter(name = "myRateLimiter", fallbackMethod = "rateLimitFallback")
 	public String validateCategory(@PathVariable("category-id") Long id) {
 		return categoryService.isExistCatgory(id);
 	}
+	public ResponseEntity<String> rateLimitFallback(Exception ex) {
+        return ResponseEntity
+                .status(HttpStatus.TOO_MANY_REQUESTS)
+                .body("Too many requests - please try again later.");
+    }
 }

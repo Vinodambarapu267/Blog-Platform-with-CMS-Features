@@ -9,6 +9,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -36,36 +38,33 @@ public class TagsServiceImpl implements TagService {
 			return List.of();
 
 		// Step 2 — find tags that already exist in DB
-		Map<String, Tags> existingMap = repository.findByTagNameIn(normalized)
-				.stream()
-				.collect(Collectors.
-						toMap(Tags::getTagName, Function.identity()));
+		Map<String, Tags> existingMap = repository.findByTagNameIn(normalized).stream()
+				.collect(Collectors.toMap(Tags::getTagName, Function.identity()));
 
 		// Step 3 — create only the ones that don't exist
-		normalized.stream()
-		.filter(name -> !existingMap.containsKey(name))
-		.map(name -> repository.save(new Tags(name)))
+		normalized.stream().filter(name -> !existingMap.containsKey(name)).map(name -> repository.save(new Tags(name)))
 				.forEach(tag -> existingMap.put(tag.getTagName(), tag));
 
 		// Step 4 — return all tags
-		return normalized.stream()
-				.map(existingMap::get)
-				.map(tag -> new TagResponse(tag.getTagId(), tag.getTagName()))
+		return normalized.stream().map(existingMap::get).map(tag -> new TagResponse(tag.getTagId(), tag.getTagName()))
 				.toList();
 	}
 
+	@Cacheable(value = "popularTags", key = "'all'")
 	@Override
 	public Page<Tags> findAllPopularTags(Pageable pageable) {
 		Page<Tags> popular = repository.findPopularTags(pageable);
 		return popular;
 	}
 
+	@CacheEvict(value = "tags", key = "#cId")
 	@Override
 	public void deleteTag(Long id) {
 		Tags tags = repository.findById(id).orElseThrow(() -> new TagNotFoundException("Tag not found"));
 		repository.delete(tags);
 	}
 
+	@CacheEvict(value = "tags", key = "'all'")
 	@Override
 	public List<Tags> findAll() {
 		List<Tags> allTags = repository.findAll();
@@ -78,9 +77,7 @@ public class TagsServiceImpl implements TagService {
 	private Set<String> normalize(List<String> names) {
 		if (names == null)
 			return Set.of();
-		return names.stream().filter(Objects::nonNull)
-				.map(s -> s.trim().toLowerCase())
-				.filter(s -> !s.isBlank())
+		return names.stream().filter(Objects::nonNull).map(s -> s.trim().toLowerCase()).filter(s -> !s.isBlank())
 				.collect(Collectors.toCollection(LinkedHashSet::new));
 	}
 }

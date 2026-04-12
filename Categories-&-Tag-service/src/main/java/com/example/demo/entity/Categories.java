@@ -1,5 +1,6 @@
 package com.example.demo.entity;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,13 +20,14 @@ import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 @Entity
 @Table(name = "categories")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
-public class Categories {
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
+public class Categories implements Serializable {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long categoryId;
@@ -33,11 +35,12 @@ public class Categories {
 	@Column(unique = true)
 	private String categorySlug;
 	private String description;
-	@ManyToOne(fetch = FetchType.LAZY)
+	@ManyToOne()
 	@JoinColumn(name = "parent_id")
 	@JsonIgnore
 	private Categories parent;
 
-	@OneToMany(mappedBy = "parent", fetch = FetchType.LAZY)
+	@OneToMany(mappedBy = "parent")
+	@JsonIgnore
 	private List<Categories> children = new ArrayList<>();
 }
