@@ -1,8 +1,10 @@
 package com.example.demo.entity;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import com.example.demo.utility.PostStatus;
 
@@ -46,12 +48,12 @@ public class Post {
 	private Integer like_count;
 	@CreationTimestamp
 	@Column(nullable = true)
-	private Instant pulishedAt;
+	private LocalDateTime pulishedAt;
 	@CreationTimestamp
 	@Column(nullable = false)
-	private Instant createdAt;
-	@CreationTimestamp
+	private LocalDateTime createdAt;
+	@UpdateTimestamp
 	@Column(nullable = false)
-	private Instant updatedAt;
+	private LocalDateTime updatedAt;
 
 }

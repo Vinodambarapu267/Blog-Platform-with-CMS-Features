@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import com.example.demo.dto.PostDto;
 import com.example.demo.entity.Post;
 import com.example.demo.entity.PostLikes;
+import com.example.demo.exception.PostAlreadyExistException;
+import com.example.demo.exception.PostNotFoundException;
 import com.example.demo.repository.PostLikeRepository;
 import com.example.demo.repository.PostRepostiory;
 import com.example.demo.utility.PostStatus;
@@ -21,18 +23,10 @@ public class PostServiceImpl implements PostService {
 	private PostLikeRepository likeRepository;
 
 	@Override
-	public Post findBySlug(String slug) {
-		Post post = postRepostiory.findBySlug(slug)
-				.orElseThrow(() -> new RuntimeException("post not found by this slug {}" + slug));
-
-		return post;
-	}
-
-	@Override
 	public Post createPost(Post post) {
 		Optional<Post> bySlug = postRepostiory.findBySlug(post.getSlug());
 		if (bySlug.isPresent()) {
-			throw new RuntimeException("Post already exist ");
+			throw new PostAlreadyExistException("Post already exist ");
 		}
 		Post newPost = new Post();
 		newPost.setTitle(post.getTitle());
@@ -49,9 +43,17 @@ public class PostServiceImpl implements PostService {
 	}
 
 	@Override
+	public Post findBySlug(String slug) {
+		Post post = postRepostiory.findBySlug(slug)
+				.orElseThrow(() -> new PostNotFoundException("post not found by this slug {}" + slug));
+
+		return post;
+	}
+
+	@Override
 	public Post updatePost(Long postId, PostDto postDto) {
 		Post existedPost = postRepostiory.findById(postId)
-				.orElseThrow(() -> new RuntimeException("post not found by this post id"));
+				.orElseThrow(() -> new PostNotFoundException("post not found by this post ID : "+postId));
 
 		existedPost.setTitle(postDto.getTitle());
 		existedPost.setSlug(postDto.getSlug());
@@ -68,7 +70,7 @@ public class PostServiceImpl implements PostService {
 	@Override
 	public String deletePost(Long postId) {
 		Post existedPost = postRepostiory.findById(postId)
-				.orElseThrow(() -> new RuntimeException("post not found by this post id"));
+				.orElseThrow(() -> new PostNotFoundException("post not found by this post ID : "+postId));
 		postRepostiory.delete(existedPost);
 
 		return "deleted successfully";
@@ -77,17 +79,16 @@ public class PostServiceImpl implements PostService {
 	@Override
 	public String updatePostStatus(Long postId, String status) {
 		Post post = postRepostiory.findById(postId)
-				.orElseThrow(() -> new RuntimeException("post not found by this post id"));
-		post.setStatus(updatStatus(status));
+				.orElseThrow(() -> new PostNotFoundException("post not found by this post ID : "+postId));
+		post.setStatus(updatStatus(status.toUpperCase()));
 		return "Post updated to this status : " + status;
 	}
 
 	@Override
 	public Post addLike(Long postId, PostLikes likes) {
-		Post post = postRepostiory.findById(postId).orElseThrow(() -> new RuntimeException("Post not found"));
+		Post post = postRepostiory.findById(postId).orElseThrow(() -> new PostNotFoundException("Post not found by this post ID : "+postId));
 
 		Long userId = likes.getUserId();
-
 
 		Optional<PostLikes> existingLikeOpt = likeRepository.findByPostAndUserId(post, userId);
 
@@ -113,7 +114,7 @@ public class PostServiceImpl implements PostService {
 	public List<Post> findAllPost() {
 		List<Post> all = postRepostiory.findAll();
 		if (all.isEmpty()) {
-			throw new RuntimeException("not post available");
+			throw new PostNotFoundException("no posts available");
 		}
 
 		return all;
@@ -122,7 +123,7 @@ public class PostServiceImpl implements PostService {
 	@Override
 	public int totalLikes(Long postId) {
 		Post post = postRepostiory.findById(postId)
-				.orElseThrow(() -> new RuntimeException("post not found by this post id"));
+				.orElseThrow(() -> new PostNotFoundException("post not found by this post ID : "+postId));
 		Integer like_count = post.getLike_count();
 		return like_count;
 	}
