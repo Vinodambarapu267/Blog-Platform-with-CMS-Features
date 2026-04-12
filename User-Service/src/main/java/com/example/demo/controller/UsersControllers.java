@@ -20,11 +20,9 @@ import com.example.demo.entity.User;
 import com.example.demo.service.UserService;
 import com.example.demo.utility.ResponseMessage;
 import com.example.demo.utility.ResponseStatus;
-import com.example.demo.utility.UserStatus;
 
 @RestController
 @RequestMapping("/api/v1/users")
-
 public class UsersControllers {
 	@Autowired
 	private UserService userService;
@@ -33,8 +31,8 @@ public class UsersControllers {
 	public ResponseEntity<?> createUser(@RequestBody User user) {
 		User save = userService.createUser(user);
 		if (user == null) {
-			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_CREATED, ResponseStatus.FAILURE.name(),
-					"User creating failed"));
+			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_BAD_REQUEST,
+					ResponseStatus.FAILURE.name(), "User creating failed"));
 		}
 		return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_CREATED, ResponseStatus.SUCCESS.name(),
 				"User created successfully", save));
@@ -44,8 +42,8 @@ public class UsersControllers {
 	public ResponseEntity<?> updateUser(@PathVariable Long userId, @RequestBody UserDto userDto) {
 		User updateUser = userService.updateUser(userId, userDto);
 		if (updateUser == null) {
-			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_CREATED, ResponseStatus.FAILURE.name(),
-					"User updating failed"));
+			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_BAD_REQUEST,
+					ResponseStatus.FAILURE.name(), "User updating failed"));
 		}
 		return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_CREATED, ResponseStatus.SUCCESS.name(),
 				"User updated successfully", updateUser));
@@ -55,8 +53,8 @@ public class UsersControllers {
 	public ResponseEntity<?> findByUsername(@PathVariable String username) {
 		User user = userService.findByUserName(username);
 		if (user == null) {
-			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_CREATED, ResponseStatus.FAILURE.name(),
-					"User retriving failed"));
+			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_BAD_REQUEST,
+					ResponseStatus.FAILURE.name(), "User retriving failed"));
 		}
 		return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_CREATED, ResponseStatus.SUCCESS.name(),
 				"User found successfully", user));
@@ -65,14 +63,12 @@ public class UsersControllers {
 	@DeleteMapping("/deleteuser/{username}")
 	public String deleteUser(@PathVariable String username) {
 		userService.deleteUser(username);
-	
 		return "user deleted successfully";
 	}
 
 	@PutMapping("/updateStatus")
-	public ResponseEntity<?> updateStatus(@RequestParam String username,@RequestParam String status) {
+	public ResponseEntity<?> updateStatus(@RequestParam String username, @RequestParam String status) {
 		User updateStatus = userService.updateStatus(username, status);
-
 		return ResponseEntity.ok(updateStatus);
 	}
 
@@ -80,8 +76,8 @@ public class UsersControllers {
 	public ResponseEntity<?> findAll() {
 		List<User> allUsers = userService.findAll();
 		if (allUsers == null) {
-			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_CREATED, ResponseStatus.FAILURE.name(),
-					"Users retiving failed"));
+			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_BAD_REQUEST,
+					ResponseStatus.FAILURE.name(), "Users retiving failed"));
 		}
 		return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_CREATED, ResponseStatus.SUCCESS.name(),
 				"All Users retrivied successfully", allUsers));
