@@ -1,5 +1,6 @@
 package com.example.demo.entity;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -29,14 +30,14 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class User {
+public class User implements Serializable {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long userId;
 	private String username;
 	private String displayName;
 	private String bio;
-	private Map<String, String> socialLinks=new HashMap<>();
+	private Map<String, String> socialLinks = new HashMap<>();
 	@Enumerated(EnumType.STRING)
 	private UserStatus status = UserStatus.ACTIVE;
 	@CreationTimestamp
@@ -45,7 +46,7 @@ public class User {
 	private LocalDateTime updatedAt;
 	@Enumerated(EnumType.STRING)
 	private UserRole role;
-	 @Transient
+	@Transient
 	private List<Post> posts;
 
 }

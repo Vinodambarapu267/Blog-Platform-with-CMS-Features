@@ -4,6 +4,7 @@ import java.net.HttpURLConnection;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,6 +22,8 @@ import com.example.demo.service.UserService;
 import com.example.demo.utility.ResponseMessage;
 import com.example.demo.utility.ResponseStatus;
 
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+
 @RestController
 @RequestMapping("/api/v1/users")
 public class UsersControllers {
@@ -28,6 +31,7 @@ public class UsersControllers {
 	private UserService userService;
 
 	@PostMapping("/createuser")
+	@RateLimiter(name = "myRateLimiter")
 	public ResponseEntity<?> createUser(@RequestBody User user) {
 		User save = userService.createUser(user);
 		if (user == null) {
@@ -39,6 +43,7 @@ public class UsersControllers {
 	}
 
 	@PutMapping("/updateuser/{userId}")
+	@RateLimiter(name = "myRateLimiter")
 	public ResponseEntity<?> updateUser(@PathVariable Long userId, @RequestBody UserDto userDto) {
 		User updateUser = userService.updateUser(userId, userDto);
 		if (updateUser == null) {
@@ -50,6 +55,7 @@ public class UsersControllers {
 	}
 
 	@GetMapping("/findbyname/{username}")
+	@RateLimiter(name = "myRateLimiter")
 	public ResponseEntity<?> findByUsername(@PathVariable String username) {
 		User user = userService.findByUserName(username);
 		if (user == null) {
@@ -67,12 +73,14 @@ public class UsersControllers {
 	}
 
 	@PutMapping("/updateStatus")
+	@RateLimiter(name = "myRateLimiter")
 	public ResponseEntity<?> updateStatus(@RequestParam String username, @RequestParam String status) {
 		User updateStatus = userService.updateStatus(username, status);
 		return ResponseEntity.ok(updateStatus);
 	}
 
 	@GetMapping
+	@RateLimiter(name = "myRateLimiter")
 	public ResponseEntity<?> findAll() {
 		List<User> allUsers = userService.findAll();
 		if (allUsers == null) {

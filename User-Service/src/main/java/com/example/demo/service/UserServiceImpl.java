@@ -6,6 +6,9 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Service;
 
@@ -47,6 +50,7 @@ public class UserServiceImpl implements UserService {
 		return repository.save(newUser);
 	}
 
+	@CachePut(value = "updateUser", key = "#userId")
 	@Override
 	public User updateUser(Long userId, UserDto userDto) {
 		User existedUser = repository.findById(userId)
@@ -72,6 +76,7 @@ public class UserServiceImpl implements UserService {
 
 	}
 
+	@Cacheable(value = "user", key = "#username")
 	@Override
 	public User findByUserName(String username) {
 		User user = repository.findByUsername(username)
@@ -80,6 +85,7 @@ public class UserServiceImpl implements UserService {
 	}
 
 	@Override
+	@CacheEvict(value = "username", key = "#username")
 	public void deleteUser(String username) {
 		User user = repository.findByUsername(username)
 				.orElseThrow(() -> new UserNotFoundException("User not Found with this name : " + username));
@@ -90,6 +96,7 @@ public class UserServiceImpl implements UserService {
 	@Override
 	@Modifying
 	@Transactional
+	@CachePut(value = "updateStatus", key = "#username + '-' + #status")
 	public User updateStatus(String username, String status) {
 		User user = repository.findByUsername(username)
 				.orElseThrow(() -> new UserNotFoundException("User not Found with this name : " + username));
@@ -98,6 +105,7 @@ public class UserServiceImpl implements UserService {
 	}
 
 	@Override
+	@Cacheable(value = "allUsers", key = "'all'")
 	public List<User> findAll() {
 		List<User> allUsers = repository.findAll();
 		if (allUsers.isEmpty()) {
