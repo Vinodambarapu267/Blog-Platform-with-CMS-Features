@@ -22,6 +22,8 @@ import com.example.demo.service.CommentService;
 import com.example.demo.utility.ResponseMessage;
 import com.example.demo.utility.ResponseStatus;
 
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+
 @RestController
 @RequestMapping("/api/v1/comments")
 public class CommentController {
@@ -29,6 +31,7 @@ public class CommentController {
 	private CommentService commentService;
 
 	@PostMapping("/posts/{postId}/comments")
+	
 	public ResponseEntity<?> addComment(@PathVariable Long postId, @RequestBody CommentDto commentDto) {
 		Comment comment = commentService.addComment(postId, commentDto);
 		if (comment == null) {
@@ -40,6 +43,7 @@ public class CommentController {
 	}
 
 	@GetMapping("/posts/{postId}/comments")
+	@RateLimiter(name = "myRateLimiter")
 	public ResponseEntity<?> readComments(@PathVariable Long postId) {
 		List<Comment> comments = commentService.readComments(postId);
 		if (comments.isEmpty()) {
@@ -51,6 +55,7 @@ public class CommentController {
 	}
 
 	@PutMapping("/{id}")
+	@RateLimiter(name = "myRateLimiter")
 	public ResponseEntity<?> updateComment(@PathVariable Long id, @RequestBody CommentDto commentDto) {
 		Comment updateComment = commentService.updateComment(id, commentDto);
 		if (updateComment == null) {
@@ -62,12 +67,14 @@ public class CommentController {
 	}
 
 	@DeleteMapping("/{id}")
+	@RateLimiter(name = "myRateLimiter")
 	public String deleteComment(@PathVariable Long id) {
 		String deleteComment = commentService.deleteComment(id);
 		return deleteComment;
 	}
 
 	@PatchMapping("/{id}/status")
+	@RateLimiter(name = "myRateLimiter")
 	public ResponseEntity<?> updateStatus(@PathVariable Long id, @RequestParam String status) {
 		Comment updateStatus = commentService.updateStatus(id, status);
 		return ResponseEntity.ok(updateStatus);

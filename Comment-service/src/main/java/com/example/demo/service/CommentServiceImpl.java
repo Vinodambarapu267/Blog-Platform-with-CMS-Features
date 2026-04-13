@@ -5,6 +5,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import com.example.demo.dto.CommentDto;
@@ -32,6 +35,7 @@ public class CommentServiceImpl implements CommentService {
 	}
 
 	@Override
+	@CachePut(value="comment",key="#id")
 	public Comment updateComment(Long id, CommentDto commentDto) {
 		Comment addComment = commentRepository.findById(id)
 				.orElseThrow(() -> new CommentNotFoundException("Comment not found : " + id));
@@ -47,6 +51,7 @@ public class CommentServiceImpl implements CommentService {
 	}
 
 	@Override
+	@Cacheable(value="comments",key = "#postId")
 	public List<Comment> readComments(Long postId) {
 		List<Comment> allComments = commentRepository.findAllByPostId(postId);
 		if (allComments.isEmpty()) {
@@ -57,6 +62,7 @@ public class CommentServiceImpl implements CommentService {
 	}
 
 	@Override
+	@CacheEvict(value="comment",key="#id")
 	public String deleteComment(Long id) {
 		Comment comment = commentRepository.findById(id)
 				.orElseThrow(() -> new CommentNotFoundException("comment Already deleted"));
@@ -65,6 +71,7 @@ public class CommentServiceImpl implements CommentService {
 	}
 
 	@Override
+	@CachePut(value="comment",key="#id")
 	public Comment updateStatus(Long id, String status) {
 		Comment comment = commentRepository.findById(id)
 				.orElseThrow(() -> new CommentNotFoundException("Comment not found"));
