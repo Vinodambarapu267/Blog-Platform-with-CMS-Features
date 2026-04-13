@@ -3,8 +3,13 @@ package com.example.demo.service;
 import java.util.List;
 import java.util.Optional;
 
+import org.hibernate.annotations.Cache;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.demo.dto.PostDto;
 import com.example.demo.entity.Post;
@@ -33,7 +38,6 @@ public class PostServiceImpl implements PostService {
 		newPost.setSlug(post.getSlug());
 		newPost.setContent(post.getContent());
 		newPost.setExcerpt(post.getExcerpt());
-		newPost.setStatus(post.getStatus());
 		newPost.setAuthorId(post.getAuthorId());
 		newPost.setCategoryId(post.getCategoryId());
 		newPost.setView_count(0);
@@ -43,6 +47,7 @@ public class PostServiceImpl implements PostService {
 	}
 
 	@Override
+	@Cacheable(value = "post", key = "#slug")
 	public Post findBySlug(String slug) {
 		Post post = postRepostiory.findBySlug(slug)
 				.orElseThrow(() -> new PostNotFoundException("post not found by this slug {}" + slug));
@@ -51,15 +56,14 @@ public class PostServiceImpl implements PostService {
 	}
 
 	@Override
+	@CachePut(value = "updatePost", key = "#postId")
 	public Post updatePost(Long postId, PostDto postDto) {
 		Post existedPost = postRepostiory.findById(postId)
-				.orElseThrow(() -> new PostNotFoundException("post not found by this post ID : "+postId));
-
+				.orElseThrow(() -> new PostNotFoundException("post not found by this post ID : " + postId));
 		existedPost.setTitle(postDto.getTitle());
 		existedPost.setSlug(postDto.getSlug());
 		existedPost.setContent(postDto.getContent());
 		existedPost.setExcerpt(postDto.getExcerpt());
-		existedPost.setStatus(postDto.getStatus());
 		existedPost.setAuthorId(postDto.getAuthorId());
 		existedPost.setCategoryId(postDto.getCategoryId());
 		existedPost.setStatus(updatStatus(postDto.getStatus().name().toUpperCase()));
@@ -68,32 +72,37 @@ public class PostServiceImpl implements PostService {
 	}
 
 	@Override
+	@Transactional
+	@CacheEvict(value = "deletePost", key = "#postId")
 	public String deletePost(Long postId) {
 		Post existedPost = postRepostiory.findById(postId)
-				.orElseThrow(() -> new PostNotFoundException("post not found by this post ID : "+postId));
-		postRepostiory.delete(existedPost);
+				.orElseThrow(() -> new PostNotFoundException("post not found by this post ID : " + postId));
 
+		postRepostiory.delete(existedPost);
+		likeRepository.deleteByPostId(postId);
 		return "deleted successfully";
 	}
 
 	@Override
+	@CachePut(value = "updatePostStatus", key = "#postId+'-'+#status")
 	public String updatePostStatus(Long postId, String status) {
 		Post post = postRepostiory.findById(postId)
-				.orElseThrow(() -> new PostNotFoundException("post not found by this post ID : "+postId));
+				.orElseThrow(() -> new PostNotFoundException("post not found by this post ID : " + postId));
 		post.setStatus(updatStatus(status.toUpperCase()));
 		return "Post updated to this status : " + status;
 	}
 
 	@Override
+	@CachePut(value = "postLike", key = "#postId")
 	public Post addLike(Long postId, PostLikes likes) {
-		Post post = postRepostiory.findById(postId).orElseThrow(() -> new PostNotFoundException("Post not found by this post ID : "+postId));
+		Post post = postRepostiory.findById(postId)
+				.orElseThrow(() -> new PostNotFoundException("Post not found by this post ID : " + postId));
 
 		Long userId = likes.getUserId();
 
 		Optional<PostLikes> existingLikeOpt = likeRepository.findByPostAndUserId(post, userId);
 
 		int currentLikes = post.getLike_count() == null ? 0 : post.getLike_count();
-
 		if (existingLikeOpt.isPresent()) {
 			PostLikes existingLike = existingLikeOpt.get();
 			likeRepository.delete(existingLike);
@@ -111,6 +120,7 @@ public class PostServiceImpl implements PostService {
 	}
 
 	@Override
+	@Cacheable(value = "allPosts", key = "'all'")
 	public List<Post> findAllPost() {
 		List<Post> all = postRepostiory.findAll();
 		if (all.isEmpty()) {
@@ -121,9 +131,10 @@ public class PostServiceImpl implements PostService {
 	}
 
 	@Override
+	@Cacheable(value = "postLikes", key = "#postId")
 	public int totalLikes(Long postId) {
 		Post post = postRepostiory.findById(postId)
-				.orElseThrow(() -> new PostNotFoundException("post not found by this post ID : "+postId));
+				.orElseThrow(() -> new PostNotFoundException("post not found by this post ID : " + postId));
 		Integer like_count = post.getLike_count();
 		return like_count;
 	}

@@ -21,6 +21,8 @@ import com.example.demo.service.PostService;
 import com.example.demo.utility.ResponseMessage;
 import com.example.demo.utility.ResponseStatus;
 
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+
 @RestController
 @RequestMapping("/api/v1/posts")
 public class PostController {
@@ -39,6 +41,7 @@ public class PostController {
 	}
 
 	@PutMapping("/updatepost/{id}")
+	@RateLimiter(name = "myRateLimiter")
 	public ResponseEntity<?> updatPost(@PathVariable("id") Long postId, @RequestBody PostDto postDto) {
 		Post updatePost = postService.updatePost(postId, postDto);
 		if (updatePost == null) {
@@ -56,12 +59,14 @@ public class PostController {
 	}
 
 	@PutMapping("/updatestatus/{id}")
+	@RateLimiter(name = "myRateLimiter")
 	public String updateStatus(@PathVariable("id") Long postid, @RequestParam String status) {
 		String updatePostStatus = postService.updatePostStatus(postid, status);
 		return updatePostStatus;
 	}
 
 	@PostMapping("/{id}/like")
+	@RateLimiter(name = "myRateLimiter")
 	public ResponseEntity<?> addLike(@PathVariable("id") Long postId, @RequestBody PostLikes likes) {
 		Post like = postService.addLike(postId, likes);
 		if (like == null) {
@@ -73,6 +78,7 @@ public class PostController {
 	}
 
 	@GetMapping("/{id}/likes")
+	@RateLimiter(name = "myRateLimiter")
 	public Integer getTotalLikes(@PathVariable("id") Long postId) {
 		int totalLikes = postService.totalLikes(postId);
 		return totalLikes;
