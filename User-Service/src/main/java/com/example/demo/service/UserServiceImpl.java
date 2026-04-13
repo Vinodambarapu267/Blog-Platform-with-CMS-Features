@@ -1,5 +1,6 @@
 package com.example.demo.service;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +17,7 @@ import com.example.demo.dto.UserDto;
 import com.example.demo.entity.User;
 import com.example.demo.excpetion.UserALreadyExistException;
 import com.example.demo.excpetion.UserNotFoundException;
+import com.example.demo.kafka.UserRegisterEvent;
 import com.example.demo.repository.UsersRepository;
 import com.example.demo.utility.UserStatus;
 
@@ -45,9 +47,21 @@ public class UserServiceImpl implements UserService {
 				}
 			});
 		}
-		newUser.setSocialLinks(links);
 
-		return repository.save(newUser);
+		newUser.setSocialLinks(links);
+		User save = repository.save(newUser);
+		UserRegisterEvent event = new UserRegisterEvent();
+		event.setUserId(save.getUserId());
+		event.setBio(save.getBio());
+		event.setUsername(save.getUsername());
+		event.setDisplayName(save.getDisplayName());
+		event.setSocialLinks(save.getSocialLinks());
+		event.setEventType("user.registered");
+		event.setCreatedAt(LocalDateTime.now());
+		event.setUpdatedAt(save.getUpdatedAt());
+		event.setStatus(save.getStatus());
+		event.setRole(save.getRole());
+		return save;
 	}
 
 	@CachePut(value = "updateUser", key = "#userId")
@@ -64,16 +78,13 @@ public class UserServiceImpl implements UserService {
 		if (existedUser.getSocialLinks() == null) {
 			existedUser.setSocialLinks(new HashMap<>());
 		}
-
 		if (existedUser.getSocialLinks() == null) {
 			existedUser.setSocialLinks(new HashMap<>());
 		}
-
 		if (userDto.getSocialLinks() != null) {
 			existedUser.getSocialLinks().putAll(userDto.getSocialLinks());
 		}
 		return repository.save(existedUser);
-
 	}
 
 	@Cacheable(value = "user", key = "#username")
