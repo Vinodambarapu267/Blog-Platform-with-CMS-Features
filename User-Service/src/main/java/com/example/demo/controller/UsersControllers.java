@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.demo.dto.UserDto;
+import com.example.demo.dto.UserResponseDto;
 import com.example.demo.entity.User;
 import com.example.demo.service.UserService;
 import com.example.demo.utility.ResponseMessage;
@@ -33,7 +34,7 @@ public class UsersControllers {
 	@PostMapping("/createuser")
 	@RateLimiter(name = "myRateLimiter")
 	public ResponseEntity<?> createUser(@RequestBody User user) {
-		User save = userService.createUser(user);
+		UserResponseDto save = userService.createUser(user);
 		if (user == null) {
 			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_BAD_REQUEST,
 					ResponseStatus.FAILURE.name(), "User creating failed"));
@@ -45,7 +46,7 @@ public class UsersControllers {
 	@PutMapping("/updateuser/{userId}")
 	@RateLimiter(name = "myRateLimiter")
 	public ResponseEntity<?> updateUser(@PathVariable Long userId, @RequestBody UserDto userDto) {
-		User updateUser = userService.updateUser(userId, userDto);
+		UserResponseDto updateUser = userService.updateUser(userId, userDto);
 		if (updateUser == null) {
 			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_BAD_REQUEST,
 					ResponseStatus.FAILURE.name(), "User updating failed"));
@@ -57,7 +58,7 @@ public class UsersControllers {
 	@GetMapping("/findbyname/{username}")
 	@RateLimiter(name = "myRateLimiter")
 	public ResponseEntity<?> findByUsername(@PathVariable String username) {
-		User user = userService.findByUserName(username);
+		UserResponseDto user = userService.findByUserName(username);
 		if (user == null) {
 			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_BAD_REQUEST,
 					ResponseStatus.FAILURE.name(), "User retriving failed"));
@@ -75,7 +76,7 @@ public class UsersControllers {
 	@PutMapping("/updateStatus")
 	@RateLimiter(name = "myRateLimiter")
 	public ResponseEntity<?> updateStatus(@RequestParam String username, @RequestParam String status) {
-		User updateStatus = userService.updateStatus(username, status);
+		UserResponseDto updateStatus = userService.updateStatus(username, status);
 		return ResponseEntity.ok(updateStatus);
 	}
 

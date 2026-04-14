@@ -1,8 +1,6 @@
-package com.example.demo.dto;
+package com.example.demo.kafka;
 
 import java.time.LocalDateTime;
-
-import org.aspectj.weaver.ast.Var;
 
 import com.example.demo.utility.PostStatus;
 
@@ -15,9 +13,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Post {
-
-
+public class PostEvent {
 	private Long postId;
 	private String title;
 	private String slug;
@@ -32,5 +28,5 @@ public class Post {
 	private LocalDateTime publishedAt;
 	private LocalDateTime createdAt;
 	private LocalDateTime updatedAt;
-
+	private String eventType;
 }

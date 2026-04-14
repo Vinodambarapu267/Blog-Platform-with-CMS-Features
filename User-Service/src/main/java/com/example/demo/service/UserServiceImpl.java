@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,10 +14,13 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Service;
 
+import com.example.demo.dto.Post;
 import com.example.demo.dto.UserDto;
+import com.example.demo.dto.UserResponseDto;
 import com.example.demo.entity.User;
 import com.example.demo.excpetion.UserALreadyExistException;
 import com.example.demo.excpetion.UserNotFoundException;
+import com.example.demo.kafka.PostEvent;
 import com.example.demo.kafka.UserRegisterEvent;
 import com.example.demo.repository.UsersRepository;
 import com.example.demo.utility.UserStatus;
@@ -30,7 +34,8 @@ public class UserServiceImpl implements UserService {
 	private UsersRepository repository;
 
 	@Override
-	public User createUser(User user) {
+	@Modifying
+	public UserResponseDto createUser(User user) {
 		Optional<User> existingUser = repository.findByUsername(user.getUsername());
 		if (existingUser.isPresent()) {
 			throw new UserALreadyExistException("User already Existed");
@@ -61,12 +66,14 @@ public class UserServiceImpl implements UserService {
 		event.setUpdatedAt(save.getUpdatedAt());
 		event.setStatus(save.getStatus());
 		event.setRole(save.getRole());
-		return save;
+		return new UserResponseDto(save.getUserId(), save.getUsername(), save.getDisplayName(), save.getBio(),
+				save.getSocialLinks(), save.getStatus(), save.getCreatedAt(), save.getUpdatedAt(), save.getRole(),
+				save.getPosts());
 	}
 
 	@CachePut(value = "updateUser", key = "#userId")
 	@Override
-	public User updateUser(Long userId, UserDto userDto) {
+	public UserResponseDto updateUser(Long userId, UserDto userDto) {
 		User existedUser = repository.findById(userId)
 				.orElseThrow(() -> new UserNotFoundException("User not found :" + userId));
 
@@ -81,18 +88,24 @@ public class UserServiceImpl implements UserService {
 		if (existedUser.getSocialLinks() == null) {
 			existedUser.setSocialLinks(new HashMap<>());
 		}
+
 		if (userDto.getSocialLinks() != null) {
 			existedUser.getSocialLinks().putAll(userDto.getSocialLinks());
 		}
-		return repository.save(existedUser);
+		User update = repository.save(existedUser);
+		return new UserResponseDto(update.getUserId(), update.getUsername(), update.getDisplayName(), update.getBio(),
+				update.getSocialLinks(), update.getStatus(), update.getCreatedAt(), update.getUpdatedAt(),
+				update.getRole(), update.getPosts());
 	}
 
 	@Cacheable(value = "user", key = "#username")
 	@Override
-	public User findByUserName(String username) {
+	public UserResponseDto findByUserName(String username) {
 		User user = repository.findByUsername(username)
 				.orElseThrow(() -> new UserNotFoundException("User not Found with this name : " + username));
-		return user;
+		return new UserResponseDto(user.getUserId(), user.getUsername(), user.getDisplayName(), user.getBio(),
+				user.getSocialLinks(), user.getStatus(), user.getCreatedAt(), user.getUpdatedAt(), user.getRole(),
+				user.getPosts());
 	}
 
 	@Override
@@ -108,11 +121,19 @@ public class UserServiceImpl implements UserService {
 	@Modifying
 	@Transactional
 	@CachePut(value = "updateStatus", key = "#username + '-' + #status")
-	public User updateStatus(String username, String status) {
+	public UserResponseDto updateStatus(String username, String status) {
 		User user = repository.findByUsername(username)
 				.orElseThrow(() -> new UserNotFoundException("User not Found with this name : " + username));
 		user.setStatus(updateStatus(status));
-		return repository.save(user);
+		User save = repository.save(user);
+		return new UserResponseDto(save.getUserId(),
+				save.getUsername(), 
+				save.getDisplayName(), 
+				save.getBio(),
+				save.getSocialLinks(),
+				save.getStatus(), save.getCreatedAt(),
+				save.getUpdatedAt(), save.getRole(),
+				save.getPosts());
 	}
 
 	@Override
@@ -120,7 +141,7 @@ public class UserServiceImpl implements UserService {
 	public List<User> findAll() {
 		List<User> allUsers = repository.findAll();
 		if (allUsers.isEmpty()) {
-			new UserNotFoundException("no Users in database");
+			throw new UserNotFoundException("no Users in database");
 		}
 		return allUsers;
 	}
@@ -134,6 +155,39 @@ public class UserServiceImpl implements UserService {
 		case "BLOCKED" -> UserStatus.BLOCKED;
 		default -> throw new IllegalArgumentException("Unexpected value: " + status);
 		};
-
 	}
+
+	@Override
+	@Transactional
+	public void addPost(Long authorId, PostEvent event) {
+		User user = repository.findById(authorId)
+				.orElseThrow(() -> new UserNotFoundException("User not Found with this ID : " + authorId));
+		boolean exists = (user.getPosts() == null || user.getPosts().isEmpty()) 
+			    ? false 
+			    : user.getPosts().stream().anyMatch(p -> p.getPostId().equals(event.getPostId()));
+		if (!exists) {
+			if (user.getPosts() == null) {
+				user.setPosts(new ArrayList<>());
+			}
+			Post post = new Post();
+			post.setPostId(event.getPostId());
+			post.setTitle(event.getTitle());
+			post.setSlug(event.getSlug());
+			post.setContent(event.getContent());
+			post.setExcerpt(event.getExcerpt());
+			post.setStatus(event.getStatus());
+			post.setAuthorId(authorId);
+			post.setCategoryId(event.getCategoryId());
+			post.setViewCount(event.getViewCount());
+			post.setLikeCount(event.getLikeCount());
+			post.setCreatedAt(event.getCreatedAt());
+			post.setPublishedAt(event.getPublishedAt());
+			post.setUpdatedAt(event.getUpdatedAt());
+			user.getPosts().add(post);
+			System.out.println(post);
+		}
+		User save = repository.save(user);
+		System.out.println(save);
+	}
+
 }
