@@ -1,10 +1,9 @@
-package com.example.demo.dto;
+package com.example.demo.kafka;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 
 import com.example.demo.utility.PostStatus;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import lombok.AllArgsConstructor;
@@ -14,31 +13,21 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class PostDto {
-	@Column(nullable = false)
+public class PostEvent {
+
+	private Long postId;
 	private String title;
-	@Column(nullable = false, unique = true)
 	private String slug;
-	@Column(nullable = false)
 	private String content;
-	@Column(nullable = true)
 	private String excerpt;
-	@Column(nullable = false)
 	@Enumerated(EnumType.STRING)
 	private PostStatus status = PostStatus.PUBLISHED;
-	@Column(nullable = false)
 	private Long authorId;
-	@Column(nullable = true)
 	private Long categoryId;
 	private Integer viewCount;
 	private Integer likeCount;
-
-	@Column(nullable = true)
-	private Instant pulishedAt;
-
-	@Column(nullable = false)
-	private Instant createdAt;
-
-	@Column(nullable = false)
-	private Instant updatedAt;
+	private LocalDateTime pulishedAt;
+	private LocalDateTime createdAt;
+	private LocalDateTime updatedAt;
+	private String eventType;
 }

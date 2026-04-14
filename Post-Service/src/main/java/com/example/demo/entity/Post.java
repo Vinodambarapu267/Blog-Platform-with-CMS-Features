@@ -44,11 +44,11 @@ public class Post implements Serializable{
 	private Long authorId;
 	@Column(nullable = true)
 	private Long categoryId;
-	private Integer view_count;
-	private Integer like_count;
+	private Integer viewCount;
+	private Integer likeCount;
 	@CreationTimestamp
 	@Column(nullable = true)
-	private LocalDateTime pulishedAt;
+	private LocalDateTime publishedAt;
 	@CreationTimestamp
 	@Column(nullable = false)
 	private LocalDateTime createdAt;
