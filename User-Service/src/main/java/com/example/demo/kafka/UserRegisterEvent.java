@@ -2,10 +2,8 @@ package com.example.demo.kafka;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-import com.example.demo.dto.Post;
 import com.example.demo.utility.UserRole;
 import com.example.demo.utility.UserStatus;
 

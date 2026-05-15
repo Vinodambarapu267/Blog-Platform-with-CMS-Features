@@ -32,5 +32,5 @@ public class UserResponseDto implements Serializable {
 	private LocalDateTime updatedAt;
 	@Enumerated(EnumType.STRING)
 	private UserRole role;
-	private List<Post> posts;
+	private List<Long> postIds;
 }

@@ -1,10 +1,10 @@
 package com.example.demo.service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +14,6 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Service;
 
-import com.example.demo.dto.Post;
 import com.example.demo.dto.UserDto;
 import com.example.demo.dto.UserResponseDto;
 import com.example.demo.entity.User;
@@ -68,7 +67,7 @@ public class UserServiceImpl implements UserService {
 		event.setRole(save.getRole());
 		return new UserResponseDto(save.getUserId(), save.getUsername(), save.getDisplayName(), save.getBio(),
 				save.getSocialLinks(), save.getStatus(), save.getCreatedAt(), save.getUpdatedAt(), save.getRole(),
-				save.getPosts());
+				save.getPostIds());
 	}
 
 	@CachePut(value = "updateUser", key = "#userId")
@@ -95,7 +94,7 @@ public class UserServiceImpl implements UserService {
 		User update = repository.save(existedUser);
 		return new UserResponseDto(update.getUserId(), update.getUsername(), update.getDisplayName(), update.getBio(),
 				update.getSocialLinks(), update.getStatus(), update.getCreatedAt(), update.getUpdatedAt(),
-				update.getRole(), update.getPosts());
+				update.getRole(), update.getPostIds());
 	}
 
 	@Cacheable(value = "user", key = "#username")
@@ -105,7 +104,7 @@ public class UserServiceImpl implements UserService {
 				.orElseThrow(() -> new UserNotFoundException("User not Found with this name : " + username));
 		return new UserResponseDto(user.getUserId(), user.getUsername(), user.getDisplayName(), user.getBio(),
 				user.getSocialLinks(), user.getStatus(), user.getCreatedAt(), user.getUpdatedAt(), user.getRole(),
-				user.getPosts());
+				user.getPostIds());
 	}
 
 	@Override
@@ -126,14 +125,9 @@ public class UserServiceImpl implements UserService {
 				.orElseThrow(() -> new UserNotFoundException("User not Found with this name : " + username));
 		user.setStatus(updateStatus(status));
 		User save = repository.save(user);
-		return new UserResponseDto(save.getUserId(),
-				save.getUsername(), 
-				save.getDisplayName(), 
-				save.getBio(),
-				save.getSocialLinks(),
-				save.getStatus(), save.getCreatedAt(),
-				save.getUpdatedAt(), save.getRole(),
-				save.getPosts());
+		return new UserResponseDto(save.getUserId(), save.getUsername(), save.getDisplayName(), save.getBio(),
+				save.getSocialLinks(), save.getStatus(), save.getCreatedAt(), save.getUpdatedAt(), save.getRole(),
+				save.getPostIds());
 	}
 
 	@Override
@@ -162,32 +156,12 @@ public class UserServiceImpl implements UserService {
 	public void addPost(Long authorId, PostEvent event) {
 		User user = repository.findById(authorId)
 				.orElseThrow(() -> new UserNotFoundException("User not Found with this ID : " + authorId));
-		boolean exists = (user.getPosts() == null || user.getPosts().isEmpty()) 
-			    ? false 
-			    : user.getPosts().stream().anyMatch(p -> p.getPostId().equals(event.getPostId()));
-		if (!exists) {
-			if (user.getPosts() == null) {
-				user.setPosts(new ArrayList<>());
-			}
-			Post post = new Post();
-			post.setPostId(event.getPostId());
-			post.setTitle(event.getTitle());
-			post.setSlug(event.getSlug());
-			post.setContent(event.getContent());
-			post.setExcerpt(event.getExcerpt());
-			post.setStatus(event.getStatus());
-			post.setAuthorId(authorId);
-			post.setCategoryId(event.getCategoryId());
-			post.setViewCount(event.getViewCount());
-			post.setLikeCount(event.getLikeCount());
-			post.setCreatedAt(event.getCreatedAt());
-			post.setPublishedAt(event.getPublishedAt());
-			post.setUpdatedAt(event.getUpdatedAt());
-			user.getPosts().add(post);
-			System.out.println(post);
+		if (!Objects.equals(authorId, event.getAuthorId())) {
+			throw new RuntimeException("user id does not amtch with author id in the post ");
 		}
+		user.getPostIds().add(event.getPostId());
 		User save = repository.save(user);
-		System.out.println(save);
+
 	}
 
 }

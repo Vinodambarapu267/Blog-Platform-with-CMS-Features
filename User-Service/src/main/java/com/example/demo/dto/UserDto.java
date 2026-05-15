@@ -27,5 +27,5 @@ public class UserDto {
 
 	private LocalDateTime createdAt;
 	private LocalDateTime updatedAt;
-	private List<Post> posts;
+	private List<Long> postIds;
 }

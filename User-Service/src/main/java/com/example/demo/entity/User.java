@@ -9,21 +9,17 @@ import java.util.Map;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import com.example.demo.dto.Post;
 import com.example.demo.utility.UserRole;
 import com.example.demo.utility.UserStatus;
 
-import jakarta.persistence.CascadeType;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import jakarta.persistence.Transient;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -40,6 +36,7 @@ public class User implements Serializable {
 	private String username;
 	private String displayName;
 	private String bio;
+	@ElementCollection
 	private Map<String, String> socialLinks = new HashMap<>();
 	@Enumerated(EnumType.STRING)
 	private UserStatus status = UserStatus.ACTIVE;
@@ -49,6 +46,6 @@ public class User implements Serializable {
 	private LocalDateTime updatedAt;
 	@Enumerated(EnumType.STRING)
 	private UserRole role;
-	@Transient
-	private List<Post> posts;
+	@ElementCollection
+    private List<Long> postIds;
 }
