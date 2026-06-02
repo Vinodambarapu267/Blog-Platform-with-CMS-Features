@@ -1,8 +1,8 @@
 package com.example.demo.excpetion;
 
-public class UserALreadyExistException extends RuntimeException {
+public class UserAlreadyExistException extends RuntimeException {
 
-	public UserALreadyExistException(String message) {
+	public UserAlreadyExistException(String message) {
 		super(message);
 	}
 

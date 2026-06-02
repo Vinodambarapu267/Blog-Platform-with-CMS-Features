@@ -83,7 +83,7 @@ public class UsersControllers {
 	@GetMapping
 	@RateLimiter(name = "myRateLimiter")
 	public ResponseEntity<?> findAll() {
-		List<User> allUsers = userService.findAll();
+		List<UserResponseDto> allUsers = userService.findAll();
 		if (allUsers == null) {
 			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_BAD_REQUEST,
 					ResponseStatus.FAILURE.name(), "Users retiving failed"));

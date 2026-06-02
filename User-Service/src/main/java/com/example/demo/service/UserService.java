@@ -22,7 +22,7 @@ public interface UserService {
 
 	public UserResponseDto updateStatus(String username, String status);
 
-	public List<User> findAll();
+	public List<UserResponseDto> findAll();
 
 	public void addPost(Long authorId, PostEvent event);
 }

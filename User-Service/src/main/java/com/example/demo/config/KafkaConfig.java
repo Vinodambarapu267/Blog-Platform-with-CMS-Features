@@ -10,7 +10,7 @@ public class KafkaConfig {
     public NewTopic studentEventsTopic() {
         return TopicBuilder.name("user-registered")
                 .partitions(3)               // number of partitions
-                .replicas(2)                 // replication factor
+                .replicas(1)                 // replication factor
                 .build();
     }
 }

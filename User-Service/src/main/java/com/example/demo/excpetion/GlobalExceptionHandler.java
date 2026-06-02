@@ -16,9 +16,9 @@ import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-	@ExceptionHandler(UserALreadyExistException.class)
+	@ExceptionHandler(UserAlreadyExistException.class)
 	@ResponseStatus(code = HttpStatus.ALREADY_REPORTED)
-	public ResponseEntity<?> handleUserAlreadyExistException(UserALreadyExistException exception, WebRequest request) {
+	public ResponseEntity<?> handleUserAlreadyExistException(UserAlreadyExistException exception, WebRequest request) {
 		ErrorMessage errorMessage = new ErrorMessage(LocalDateTime.now(), HttpURLConnection.HTTP_MULT_CHOICE,
 				exception.getMessage(), request.getDescription(false));
 		return ResponseEntity.ok(errorMessage);

@@ -1,11 +1,13 @@
 package com.example.demo.service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
@@ -17,7 +19,7 @@ import org.springframework.stereotype.Service;
 import com.example.demo.dto.UserDto;
 import com.example.demo.dto.UserResponseDto;
 import com.example.demo.entity.User;
-import com.example.demo.excpetion.UserALreadyExistException;
+import com.example.demo.excpetion.UserAlreadyExistException;
 import com.example.demo.excpetion.UserNotFoundException;
 import com.example.demo.kafka.PostEvent;
 import com.example.demo.kafka.UserRegisterEvent;
@@ -37,12 +39,13 @@ public class UserServiceImpl implements UserService {
 	public UserResponseDto createUser(User user) {
 		Optional<User> existingUser = repository.findByUsername(user.getUsername());
 		if (existingUser.isPresent()) {
-			throw new UserALreadyExistException("User already Existed");
+			throw new UserAlreadyExistException("User already Existed");
 		}
 		User newUser = new User();
 		newUser.setBio(user.getBio());
 		newUser.setDisplayName(user.getDisplayName());
 		newUser.setUsername(user.getUsername());
+		newUser.setPostIds(user.getPostIds());
 		Map<String, String> links = new HashMap<>();
 		if (user.getSocialLinks() != null) {
 			user.getSocialLinks().forEach((key, value) -> {
@@ -50,6 +53,7 @@ public class UserServiceImpl implements UserService {
 					links.put(key, value);
 				}
 			});
+
 		}
 
 		newUser.setSocialLinks(links);
@@ -66,8 +70,7 @@ public class UserServiceImpl implements UserService {
 		event.setStatus(save.getStatus());
 		event.setRole(save.getRole());
 		return new UserResponseDto(save.getUserId(), save.getUsername(), save.getDisplayName(), save.getBio(),
-				save.getSocialLinks(), save.getStatus(), save.getCreatedAt(), save.getUpdatedAt(), save.getRole(),
-				save.getPostIds());
+				save.getSocialLinks(), save.getStatus(), save.getCreatedAt(), save.getRole(), save.getPostIds());
 	}
 
 	@CachePut(value = "updateUser", key = "#userId")
@@ -93,18 +96,32 @@ public class UserServiceImpl implements UserService {
 		}
 		User update = repository.save(existedUser);
 		return new UserResponseDto(update.getUserId(), update.getUsername(), update.getDisplayName(), update.getBio(),
-				update.getSocialLinks(), update.getStatus(), update.getCreatedAt(), update.getUpdatedAt(),
-				update.getRole(), update.getPostIds());
+				update.getSocialLinks(), update.getStatus(), update.getCreatedAt(), update.getRole(),
+				update.getPostIds());
 	}
 
-	@Cacheable(value = "user", key = "#username")
+
 	@Override
+	@Transactional
 	public UserResponseDto findByUserName(String username) {
-		User user = repository.findByUsername(username)
-				.orElseThrow(() -> new UserNotFoundException("User not Found with this name : " + username));
-		return new UserResponseDto(user.getUserId(), user.getUsername(), user.getDisplayName(), user.getBio(),
-				user.getSocialLinks(), user.getStatus(), user.getCreatedAt(), user.getUpdatedAt(), user.getRole(),
-				user.getPostIds());
+		User user = repository.findByUsername(username).orElseThrow(() -> new UserNotFoundException("User not found"));
+
+		// Force initialization if necessary (for lazy collections)
+		user.getSocialLinks().size();
+		user.getPostIds().size();
+
+
+		UserResponseDto dto = new UserResponseDto();
+		dto.setUserId(user.getUserId());
+		dto.setUsername(user.getUsername());
+		dto.setDisplayName(user.getDisplayName());
+		dto.setBio(user.getBio());
+		dto.setStatus(user.getStatus());
+		dto.setRole(user.getRole());
+		dto.setSocialLinks(new HashMap<>(user.getSocialLinks()));
+		dto.setPostIds(new ArrayList<>(user.getPostIds()));
+		
+		return dto;
 	}
 
 	@Override
@@ -126,20 +143,33 @@ public class UserServiceImpl implements UserService {
 		user.setStatus(updateStatus(status));
 		User save = repository.save(user);
 		return new UserResponseDto(save.getUserId(), save.getUsername(), save.getDisplayName(), save.getBio(),
-				save.getSocialLinks(), save.getStatus(), save.getCreatedAt(), save.getUpdatedAt(), save.getRole(),
-				save.getPostIds());
+				save.getSocialLinks(), save.getStatus(), save.getUpdatedAt(), save.getRole(), save.getPostIds());
 	}
 
 	@Override
-	@Cacheable(value = "allUsers", key = "'all'")
-	public List<User> findAll() {
-		List<User> allUsers = repository.findAll();
-		if (allUsers.isEmpty()) {
-			throw new UserNotFoundException("no Users in database");
-		}
-		return allUsers;
-	}
+	
+	@Transactional
+	public List<UserResponseDto> findAll() {
+	    List<User> allWithDetails = repository.findAllWithDetails();
+	    if (allWithDetails.isEmpty()) {
+	        throw new UserNotFoundException("no Users in database");
+	    }
 
+	    return allWithDetails.stream()
+	            .map(user -> new UserResponseDto(
+	                    user.getUserId(),
+	                    user.getUsername(),
+	                    user.getDisplayName(),
+	                    user.getBio(),
+	                    new HashMap<>(user.getSocialLinks()),
+	                    user.getStatus(),
+	                    user.getCreatedAt(),
+	                    user.getRole(),
+	                    new ArrayList<>(user.getPostIds())
+	            ))
+	    .toList();
+	}
+	
 	private UserStatus updateStatus(String status) {
 
 		return switch (status.toUpperCase()) {
@@ -153,15 +183,21 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	@Transactional
+	
 	public void addPost(Long authorId, PostEvent event) {
 		User user = repository.findById(authorId)
 				.orElseThrow(() -> new UserNotFoundException("User not Found with this ID : " + authorId));
+
 		if (!Objects.equals(authorId, event.getAuthorId())) {
-			throw new RuntimeException("user id does not amtch with author id in the post ");
+			throw new RuntimeException("user id does not match with author id in the post");
 		}
+		
+		if (user.getPostIds() == null) {
+			user.setPostIds(new ArrayList<>());
+		}
+
 		user.getPostIds().add(event.getPostId());
-		User save = repository.save(user);
+		repository.save(user);
 
 	}
-
 }
