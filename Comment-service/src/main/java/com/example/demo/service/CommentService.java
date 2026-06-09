@@ -15,4 +15,6 @@ public interface CommentService {
 	public String deleteComment(Long id);
 
 	public Comment updateStatus(Long id, String status);
+
+	public void deleteAllCommentWhenThePostDeleted(Long postId);
 }

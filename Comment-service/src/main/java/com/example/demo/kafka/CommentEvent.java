@@ -1,4 +1,4 @@
-package com.example.demo.dto;
+package com.example.demo.kafka;
 
 import com.example.demo.entity.Comment;
 
@@ -10,13 +10,12 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class CommentDto {
-
+public class CommentEvent {
 	private Long authorId;
 	@Column(unique = true)
 	private Long parentId;
 	private Comment parent;
 	@Column(nullable = false, columnDefinition = "TEXT")
 	private String content;
-
+	private String eventType;
 }

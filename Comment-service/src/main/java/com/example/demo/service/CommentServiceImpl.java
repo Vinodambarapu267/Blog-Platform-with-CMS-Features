@@ -14,28 +14,40 @@ import com.example.demo.dto.CommentDto;
 import com.example.demo.entity.Comment;
 import com.example.demo.exception.CommentNotFoundException;
 import com.example.demo.exception.PostNotFoundException;
+import com.example.demo.kafka.CommentEvent;
+import com.example.demo.kafka.CommentKafkaProducer;
 import com.example.demo.repository.CommentRepository;
 import com.example.demo.utility.CommentStatus;
+import com.example.demo.utility.KafkaEvent;
+
+import jakarta.transaction.Transactional;
 
 @Service
 public class CommentServiceImpl implements CommentService {
 	@Autowired
 	private CommentRepository commentRepository;
+	@Autowired
+	private CommentKafkaProducer commentKafkaProducer;
 
 	@Override
 	public Comment addComment(Long postId, CommentDto comment) {
-		Comment addComment = commentRepository.findByPostId(postId)
-				.orElseThrow(() -> new PostNotFoundException("Post not found :" + postId));
 		Comment newComment = new Comment();
 		newComment.setPostId(postId);
 		newComment.setAuthorId(comment.getAuthorId());
 		newComment.setParentId(comment.getParentId());
 		newComment.setContent(comment.getContent());
-		return commentRepository.save(newComment);
+		Comment save = commentRepository.save(newComment);
+		CommentEvent event = new CommentEvent();
+		event.setAuthorId(save.getAuthorId());
+		event.setContent(save.getContent());
+		event.setParentId(save.getParentId());
+		event.setEventType(KafkaEvent.CREATED.name());
+		commentKafkaProducer.commentCreated(event);
+		return save;
 	}
 
 	@Override
-	@CachePut(value="comment",key="#id")
+	@CachePut(value = "comment", key = "#id")
 	public Comment updateComment(Long id, CommentDto commentDto) {
 		Comment addComment = commentRepository.findById(id)
 				.orElseThrow(() -> new CommentNotFoundException("Comment not found : " + id));
@@ -46,12 +58,19 @@ public class CommentServiceImpl implements CommentService {
 		updateComment.setAuthorId(commentDto.getAuthorId());
 		updateComment.setContent(commentDto.getContent());
 		updateComment.setPostId(addComment.getPostId());
-		return commentRepository.save(updateComment);
 
+		Comment save = commentRepository.save(updateComment);
+		CommentEvent event = new CommentEvent();
+		event.setAuthorId(save.getAuthorId());
+		event.setContent(save.getContent());
+		event.setParentId(save.getParentId());
+		event.setEventType(KafkaEvent.UPDATED.name());
+		commentKafkaProducer.commentModerated(event);
+		return save;
 	}
 
 	@Override
-	@Cacheable(value="comments",key = "#postId")
+	@Cacheable(value = "comments", key = "#postId")
 	public List<Comment> readComments(Long postId) {
 		List<Comment> allComments = commentRepository.findAllByPostId(postId);
 		if (allComments.isEmpty()) {
@@ -62,7 +81,7 @@ public class CommentServiceImpl implements CommentService {
 	}
 
 	@Override
-	@CacheEvict(value="comment",key="#id")
+	@CacheEvict(value = "comment", key = "#id")
 	public String deleteComment(Long id) {
 		Comment comment = commentRepository.findById(id)
 				.orElseThrow(() -> new CommentNotFoundException("comment Already deleted"));
@@ -71,7 +90,13 @@ public class CommentServiceImpl implements CommentService {
 	}
 
 	@Override
-	@CachePut(value="comment",key="#id")
+	@Transactional
+	public void deleteAllCommentWhenThePostDeleted(Long postId) {
+		commentRepository.deleteByPostId(postId);
+	}
+
+	@Override
+	@CachePut(value = "comment", key = "#id")
 	public Comment updateStatus(Long id, String status) {
 		Comment comment = commentRepository.findById(id)
 				.orElseThrow(() -> new CommentNotFoundException("Comment not found"));

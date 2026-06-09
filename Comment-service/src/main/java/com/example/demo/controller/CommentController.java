@@ -31,7 +31,6 @@ public class CommentController {
 	private CommentService commentService;
 
 	@PostMapping("/posts/{postId}/comments")
-	
 	public ResponseEntity<?> addComment(@PathVariable Long postId, @RequestBody CommentDto commentDto) {
 		Comment comment = commentService.addComment(postId, commentDto);
 		if (comment == null) {
