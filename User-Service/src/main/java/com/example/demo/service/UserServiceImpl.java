@@ -179,6 +179,23 @@ public class UserServiceImpl implements UserService {
 	}
 
 	@Override
+	public UserDto findById(Long userId) {
+		User user = repository.findById(userId)
+				.orElseThrow(() -> new UserNotFoundException("User Not Found Exception"));
+		UserDto result = new UserDto();
+		result.setUserId(user.getUserId());
+		result.setBio(user.getBio());
+		result.setCreatedAt(user.getCreatedAt());
+		result.setDisplayName(user.getDisplayName());
+		result.setIsActive(user.getStatus());
+		result.setUpdatedAt(user.getUpdatedAt());
+		result.setPostIds(user.getPostIds());
+		result.setSocialLinks(user.getSocialLinks());
+		result.setUsername(user.getUsername());
+		return result;
+	}
+
+	@Override
 	@Transactional
 
 	public void addPost(Long authorId, PostEvent event) {
@@ -197,4 +214,5 @@ public class UserServiceImpl implements UserService {
 		repository.save(user);
 
 	}
+
 }

@@ -11,10 +11,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.demo.dto.PostDto;
+import com.example.demo.dto.UserDto;
 import com.example.demo.entity.Post;
 import com.example.demo.entity.PostLikes;
 import com.example.demo.exception.PostAlreadyExistException;
 import com.example.demo.exception.PostNotFoundException;
+import com.example.demo.exception.UserNotFoundException;
+import com.example.demo.feignclients.UserFeignClient;
 import com.example.demo.kafka.KafkaEventProducer;
 import com.example.demo.kafka.PostEvent;
 import com.example.demo.repository.PostLikeRepository;
@@ -30,6 +33,8 @@ public class PostServiceImpl implements PostService {
 	private PostLikeRepository likeRepository;
 	@Autowired
 	private KafkaEventProducer eventProducer;
+	@Autowired
+	private UserFeignClient client;
 
 	@Override
 	public Post createPost(Post post) {
@@ -37,12 +42,17 @@ public class PostServiceImpl implements PostService {
 		if (bySlug.isPresent()) {
 			throw new PostAlreadyExistException("Post already exist ");
 		}
+		UserDto byUserId = client.findByUserId(post.getAuthorId());
+		if (byUserId == null || byUserId.getUserId() == null) {
+			throw new UserNotFoundException("User Not found by this ID: " + post.getAuthorId());
+		}
+
 		Post newPost = new Post();
 		newPost.setTitle(post.getTitle());
 		newPost.setSlug(post.getSlug());
 		newPost.setContent(post.getContent());
 		newPost.setExcerpt(post.getExcerpt());
-		newPost.setAuthorId(post.getAuthorId());
+		newPost.setAuthorId(byUserId.getUserId());
 		newPost.setCategoryId(post.getCategoryId());
 		newPost.setViewCount(0);
 		newPost.setLikeCount(0);

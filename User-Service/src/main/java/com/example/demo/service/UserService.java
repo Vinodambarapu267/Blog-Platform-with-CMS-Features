@@ -24,5 +24,7 @@ public interface UserService {
 
 	public List<UserResponseDto> findAll();
 
+	public UserDto findById(Long userId);
+
 	public void addPost(Long authorId, PostEvent event);
 }

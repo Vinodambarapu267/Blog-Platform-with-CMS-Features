@@ -28,9 +28,18 @@ public class GlobalExceptionHandler {
 				exception.getMessage(), request.getDescription(false));
 		return ResponseEntity.ok(errorMessage);
 	}
+
+	@ExceptionHandler(UserNotFoundException.class)
+	public ResponseEntity<?> handleUserNotException(UserNotFoundException exception, WebRequest request) {
+		ErrorMessage errorMessage = new ErrorMessage(LocalDateTime.now(), HttpURLConnection.HTTP_BAD_REQUEST,
+				exception.getMessage(), request.getDescription(false));
+		return ResponseEntity.ok(errorMessage);
+	}
+
 	@ExceptionHandler(io.github.resilience4j.ratelimiter.RequestNotPermitted.class)
 	public ResponseEntity<ResponseMessage> handleRateLimit(RequestNotPermitted ex) {
 		return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(new ResponseMessage(429,
 				com.example.demo.utility.ResponseStatus.FAILURE.name(), "Too many requests - please try again later."));
 	}
+
 }

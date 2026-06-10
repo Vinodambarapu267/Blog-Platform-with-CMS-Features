@@ -36,10 +36,10 @@ public class UsersControllers {
 	public ResponseEntity<?> createUser(@RequestBody User user) {
 		UserResponseDto save = userService.createUser(user);
 		if (user == null) {
-			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_BAD_REQUEST,
+			return ResponseEntity.ok(new ResponseMessage<>(HttpURLConnection.HTTP_BAD_REQUEST,
 					ResponseStatus.FAILURE.name(), "User creating failed"));
 		}
-		return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_CREATED, ResponseStatus.SUCCESS.name(),
+		return ResponseEntity.ok(new ResponseMessage<>(HttpURLConnection.HTTP_CREATED, ResponseStatus.SUCCESS.name(),
 				"User created successfully", save));
 	}
 
@@ -48,10 +48,10 @@ public class UsersControllers {
 	public ResponseEntity<?> updateUser(@PathVariable Long userId, @RequestBody UserDto userDto) {
 		UserResponseDto updateUser = userService.updateUser(userId, userDto);
 		if (updateUser == null) {
-			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_BAD_REQUEST,
+			return ResponseEntity.ok(new ResponseMessage<>(HttpURLConnection.HTTP_BAD_REQUEST,
 					ResponseStatus.FAILURE.name(), "User updating failed"));
 		}
-		return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_CREATED, ResponseStatus.SUCCESS.name(),
+		return ResponseEntity.ok(new ResponseMessage<>(HttpURLConnection.HTTP_CREATED, ResponseStatus.SUCCESS.name(),
 				"User updated successfully", updateUser));
 	}
 
@@ -60,10 +60,10 @@ public class UsersControllers {
 	public ResponseEntity<?> findByUsername(@PathVariable String username) {
 		UserResponseDto user = userService.findByUserName(username);
 		if (user == null) {
-			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_BAD_REQUEST,
+			return ResponseEntity.ok(new ResponseMessage<>(HttpURLConnection.HTTP_BAD_REQUEST,
 					ResponseStatus.FAILURE.name(), "User retriving failed"));
 		}
-		return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_CREATED, ResponseStatus.SUCCESS.name(),
+		return ResponseEntity.ok(new ResponseMessage<>(HttpURLConnection.HTTP_CREATED, ResponseStatus.SUCCESS.name(),
 				"User found successfully", user));
 	}
 
@@ -71,6 +71,13 @@ public class UsersControllers {
 	public String deleteUser(@PathVariable String username) {
 		userService.deleteUser(username);
 		return "user deleted successfully";
+	}
+
+	@GetMapping("/{userId}")
+	@RateLimiter(name = "myRateLimiter")
+	public UserDto findByUserId(@PathVariable Long userId) {
+		return userService.findById(userId);
+
 	}
 
 	@PutMapping("/updateStatus")
@@ -85,10 +92,10 @@ public class UsersControllers {
 	public ResponseEntity<?> findAll() {
 		List<UserResponseDto> allUsers = userService.findAll();
 		if (allUsers == null) {
-			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_BAD_REQUEST,
+			return ResponseEntity.ok(new ResponseMessage<>(HttpURLConnection.HTTP_BAD_REQUEST,
 					ResponseStatus.FAILURE.name(), "Users retiving failed"));
 		}
-		return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_CREATED, ResponseStatus.SUCCESS.name(),
+		return ResponseEntity.ok(new ResponseMessage<>(HttpURLConnection.HTTP_CREATED, ResponseStatus.SUCCESS.name(),
 				"All Users retrivied successfully", allUsers));
 	}
 
