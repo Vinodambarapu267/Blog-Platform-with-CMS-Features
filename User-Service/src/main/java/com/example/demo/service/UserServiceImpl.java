@@ -21,9 +21,11 @@ import com.example.demo.dto.UserResponseDto;
 import com.example.demo.entity.User;
 import com.example.demo.excpetion.UserAlreadyExistException;
 import com.example.demo.excpetion.UserNotFoundException;
+import com.example.demo.kafka.KafkaUserProducer;
 import com.example.demo.kafka.PostEvent;
-import com.example.demo.kafka.UserRegisterEvent;
+import com.example.demo.kafka.UserEvent;
 import com.example.demo.repository.UsersRepository;
+import com.example.demo.utility.KafkaEvent;
 import com.example.demo.utility.UserStatus;
 
 import jakarta.transaction.Transactional;
@@ -33,6 +35,8 @@ public class UserServiceImpl implements UserService {
 
 	@Autowired
 	private UsersRepository repository;
+	@Autowired
+	private KafkaUserProducer kafkaUserProducer;
 
 	@Override
 	@Modifying
@@ -58,7 +62,7 @@ public class UserServiceImpl implements UserService {
 
 		newUser.setSocialLinks(links);
 		User save = repository.save(newUser);
-		UserRegisterEvent event = new UserRegisterEvent();
+		UserEvent event = new UserEvent();
 		event.setUserId(save.getUserId());
 		event.setBio(save.getBio());
 		event.setUsername(save.getUsername());
@@ -100,7 +104,6 @@ public class UserServiceImpl implements UserService {
 				update.getPostIds());
 	}
 
-
 	@Override
 	@Transactional
 	public UserResponseDto findByUserName(String username) {
@@ -109,7 +112,6 @@ public class UserServiceImpl implements UserService {
 		// Force initialization if necessary (for lazy collections)
 		user.getSocialLinks().size();
 		user.getPostIds().size();
-
 
 		UserResponseDto dto = new UserResponseDto();
 		dto.setUserId(user.getUserId());
@@ -120,7 +122,7 @@ public class UserServiceImpl implements UserService {
 		dto.setRole(user.getRole());
 		dto.setSocialLinks(new HashMap<>(user.getSocialLinks()));
 		dto.setPostIds(new ArrayList<>(user.getPostIds()));
-		
+
 		return dto;
 	}
 
@@ -129,7 +131,10 @@ public class UserServiceImpl implements UserService {
 	public void deleteUser(String username) {
 		User user = repository.findByUsername(username)
 				.orElseThrow(() -> new UserNotFoundException("User not Found with this name : " + username));
-
+		UserEvent event = new UserEvent();
+		event.setUserId(user.getUserId());
+		event.setEventType(KafkaEvent.DELETED.name());
+		kafkaUserProducer.deleteUserEvent(event);
 		repository.delete(user);
 	}
 
@@ -147,29 +152,21 @@ public class UserServiceImpl implements UserService {
 	}
 
 	@Override
-	
+
 	@Transactional
 	public List<UserResponseDto> findAll() {
-	    List<User> allWithDetails = repository.findAllWithDetails();
-	    if (allWithDetails.isEmpty()) {
-	        throw new UserNotFoundException("no Users in database");
-	    }
+		List<User> allWithDetails = repository.findAllWithDetails();
+		if (allWithDetails.isEmpty()) {
+			throw new UserNotFoundException("no Users in database");
+		}
 
-	    return allWithDetails.stream()
-	            .map(user -> new UserResponseDto(
-	                    user.getUserId(),
-	                    user.getUsername(),
-	                    user.getDisplayName(),
-	                    user.getBio(),
-	                    new HashMap<>(user.getSocialLinks()),
-	                    user.getStatus(),
-	                    user.getCreatedAt(),
-	                    user.getRole(),
-	                    new ArrayList<>(user.getPostIds())
-	            ))
-	    .toList();
+		return allWithDetails.stream()
+				.map(user -> new UserResponseDto(user.getUserId(), user.getUsername(), user.getDisplayName(),
+						user.getBio(), new HashMap<>(user.getSocialLinks()), user.getStatus(), user.getCreatedAt(),
+						user.getRole(), new ArrayList<>(user.getPostIds())))
+				.toList();
 	}
-	
+
 	private UserStatus updateStatus(String status) {
 
 		return switch (status.toUpperCase()) {
@@ -183,7 +180,7 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	@Transactional
-	
+
 	public void addPost(Long authorId, PostEvent event) {
 		User user = repository.findById(authorId)
 				.orElseThrow(() -> new UserNotFoundException("User not Found with this ID : " + authorId));
@@ -191,7 +188,7 @@ public class UserServiceImpl implements UserService {
 		if (!Objects.equals(authorId, event.getAuthorId())) {
 			throw new RuntimeException("user id does not match with author id in the post");
 		}
-		
+
 		if (user.getPostIds() == null) {
 			user.setPostIds(new ArrayList<>());
 		}

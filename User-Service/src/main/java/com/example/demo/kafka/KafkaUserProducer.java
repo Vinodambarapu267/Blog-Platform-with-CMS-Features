@@ -7,10 +7,14 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class UserEventProducer {
-	private final KafkaTemplate<String, UserRegisterEvent> kafkaTemplate;
+public class KafkaUserProducer {
+	private final KafkaTemplate<String, UserEvent> kafkaTemplate;
 
-	public void publishedRegisterPublishedEvent(UserRegisterEvent event) {
+	public void publishedRegisterPublishedEvent(UserEvent event) {
 		kafkaTemplate.send("user-registered", event.getUserId().toString(), event);
+	}
+
+	public void deleteUserEvent(UserEvent event) {
+		kafkaTemplate.send("user-deleted", event.getUserId().toString(), event);
 	}
 }

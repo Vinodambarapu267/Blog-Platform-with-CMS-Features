@@ -8,7 +8,7 @@ import com.example.demo.service.UserService;
 import com.example.demo.utility.KafkaPostEvent;
 
 @Component
-public class UserEventConsumer {
+public class KafkaUserEventConsumer {
 	@Autowired
 	private UserService service;
 

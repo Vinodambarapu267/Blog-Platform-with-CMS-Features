@@ -8,7 +8,7 @@ import com.example.demo.dto.UserDto;
 import com.example.demo.dto.UserResponseDto;
 import com.example.demo.entity.User;
 import com.example.demo.kafka.PostEvent;
-import com.example.demo.kafka.UserEventConsumer;
+import com.example.demo.kafka.KafkaUserEventConsumer;
 
 @Service
 public interface UserService {

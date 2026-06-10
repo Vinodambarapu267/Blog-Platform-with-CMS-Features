@@ -25,4 +25,6 @@ public interface PostService {
 	public List<Post> findAllPost();
 
 	public int totalLikes(Long postId);
+
+	public void deleteAllPostByUserId(Long userId);
 }

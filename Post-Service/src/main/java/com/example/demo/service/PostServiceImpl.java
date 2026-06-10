@@ -197,6 +197,13 @@ public class PostServiceImpl implements PostService {
 	}
 
 	@Override
+	@Transactional
+	public void deleteAllPostByUserId(Long userId) {
+		postRepostiory.deleteAllByauthorId(userId);
+
+	}
+
+	@Override
 	@Cacheable(value = "postLikes", key = "#postId")
 	public int totalLikes(Long postId) {
 		Post post = postRepostiory.findById(postId)

@@ -8,4 +8,6 @@ import com.example.demo.entity.Post;
 
 public interface PostRepostiory extends JpaRepository<Post, Long> {
 	Optional<Post> findBySlug(String slug);
+
+	void deleteAllByauthorId(Long userId);
 }
