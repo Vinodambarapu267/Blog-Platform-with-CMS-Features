@@ -1,5 +1,7 @@
 package com.example.demo.kafka;
 
+import java.time.LocalDateTime;
+
 import com.example.demo.utility.PostStatus;
 
 import lombok.AllArgsConstructor;
@@ -22,6 +24,8 @@ public class PostEvent {
 	private Long categoryId;
 	private Integer viewCount;
 	private Integer likeCount;
-
+	private LocalDateTime pulishedAt;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 	private String eventType;
 }

@@ -3,14 +3,14 @@ package com.example.demo.kafka;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
-import com.example.demo.user_service.UserEmailService;
+import com.example.demo.emailService.EmailService;
 import com.example.demo.utility.KafkaEvent;
 
 @Service
 public class UserEventConsumer {
-	private final UserEmailService emailService;
+	private final EmailService emailService;
 
-	UserEventConsumer(UserEmailService emailService) {
+	UserEventConsumer(EmailService emailService) {
 		this.emailService = emailService;
 	}
 
