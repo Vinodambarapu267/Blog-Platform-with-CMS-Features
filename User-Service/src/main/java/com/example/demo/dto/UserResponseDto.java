@@ -27,6 +27,7 @@ public class UserResponseDto implements Serializable {
 	private Map<String, String> socialLinks = new HashMap<>();
 	@Enumerated(EnumType.STRING)
 	private UserStatus status = UserStatus.ACTIVE;
+	private String email;
 	private LocalDateTime createdAt;
 	@Enumerated(EnumType.STRING)
 	private UserRole role;

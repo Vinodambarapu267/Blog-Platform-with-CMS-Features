@@ -24,7 +24,7 @@ public class UserEvent {
 	private Map<String, String> socialLinks = new HashMap<>();
 	@Enumerated(EnumType.STRING)
 	private UserStatus status = UserStatus.ACTIVE;
-
+	private String email;
 	private LocalDateTime createdAt;
 
 	private LocalDateTime updatedAt;

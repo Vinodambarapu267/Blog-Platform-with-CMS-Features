@@ -59,7 +59,7 @@ public class UserServiceImpl implements UserService {
 			});
 
 		}
-
+		newUser.setEmail(user.getEmail());
 		newUser.setSocialLinks(links);
 		User save = repository.save(newUser);
 		UserEvent event = new UserEvent();
@@ -73,8 +73,12 @@ public class UserServiceImpl implements UserService {
 		event.setUpdatedAt(save.getUpdatedAt());
 		event.setStatus(save.getStatus());
 		event.setRole(save.getRole());
+		event.setEmail(save.getEmail());
+		event.setEventType(KafkaEvent.REGISTERED.name());
+		kafkaUserProducer.publishedRegisterPublishedEvent(event);
 		return new UserResponseDto(save.getUserId(), save.getUsername(), save.getDisplayName(), save.getBio(),
-				save.getSocialLinks(), save.getStatus(), save.getCreatedAt(), save.getRole(), save.getPostIds());
+				save.getSocialLinks(), save.getStatus(), save.getEmail(), save.getCreatedAt(), save.getRole(),
+				save.getPostIds());
 	}
 
 	@CachePut(value = "updateUser", key = "#userId")
@@ -87,7 +91,7 @@ public class UserServiceImpl implements UserService {
 		existedUser.setDisplayName(userDto.getDisplayName());
 		existedUser.setBio(userDto.getBio());
 		existedUser.setSocialLinks(userDto.getSocialLinks());
-
+		existedUser.setEmail(userDto.getEmail());
 		if (existedUser.getSocialLinks() == null) {
 			existedUser.setSocialLinks(new HashMap<>());
 		}
@@ -100,7 +104,7 @@ public class UserServiceImpl implements UserService {
 		}
 		User update = repository.save(existedUser);
 		return new UserResponseDto(update.getUserId(), update.getUsername(), update.getDisplayName(), update.getBio(),
-				update.getSocialLinks(), update.getStatus(), update.getCreatedAt(), update.getRole(),
+				update.getSocialLinks(), update.getStatus(), update.getEmail(), update.getCreatedAt(), update.getRole(),
 				update.getPostIds());
 	}
 
@@ -112,7 +116,7 @@ public class UserServiceImpl implements UserService {
 		// Force initialization if necessary (for lazy collections)
 		user.getSocialLinks().size();
 		user.getPostIds().size();
-
+		user.getEmail();
 		UserResponseDto dto = new UserResponseDto();
 		dto.setUserId(user.getUserId());
 		dto.setUsername(user.getUsername());
@@ -148,7 +152,7 @@ public class UserServiceImpl implements UserService {
 		user.setStatus(updateStatus(status));
 		User save = repository.save(user);
 		return new UserResponseDto(save.getUserId(), save.getUsername(), save.getDisplayName(), save.getBio(),
-				save.getSocialLinks(), save.getStatus(), save.getUpdatedAt(), save.getRole(), save.getPostIds());
+				save.getSocialLinks(), save.getStatus(),save.getEmail(), save.getUpdatedAt(), save.getRole(), save.getPostIds());
 	}
 
 	@Override
@@ -162,7 +166,7 @@ public class UserServiceImpl implements UserService {
 
 		return allWithDetails.stream()
 				.map(user -> new UserResponseDto(user.getUserId(), user.getUsername(), user.getDisplayName(),
-						user.getBio(), new HashMap<>(user.getSocialLinks()), user.getStatus(), user.getCreatedAt(),
+						user.getBio(), new HashMap<>(user.getSocialLinks()), user.getStatus(),user.getEmail(), user.getCreatedAt(),
 						user.getRole(), new ArrayList<>(user.getPostIds())))
 				.toList();
 	}

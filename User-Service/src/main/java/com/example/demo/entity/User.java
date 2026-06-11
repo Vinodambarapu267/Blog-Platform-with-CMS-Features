@@ -43,16 +43,15 @@ public class User implements Serializable {
 	private String username;
 	private String displayName;
 	private String bio;
-	 @ElementCollection(fetch = FetchType.LAZY)
-	    @CollectionTable(
-	        name = "user_social_links",
-	        joinColumns = @JoinColumn(name = "user_id")
-	    )
-	    @MapKeyColumn(name = "platform")      // e.g. "linkedin", "github"
-	    @Column(name = "url")
+	@ElementCollection(fetch = FetchType.LAZY)
+	@CollectionTable(name = "user_social_links", joinColumns = @JoinColumn(name = "user_id"))
+	@MapKeyColumn(name = "platform") // e.g. "linkedin", "github"
+	@Column(name = "url")
 	private Map<String, String> socialLinks = new HashMap<>();
 	@Enumerated(EnumType.STRING)
 	private UserStatus status = UserStatus.ACTIVE;
+	@Column(nullable = true)
+	private String email;
 	@CreationTimestamp
 	private LocalDateTime createdAt;
 	@UpdateTimestamp
@@ -60,10 +59,7 @@ public class User implements Serializable {
 	@Enumerated(EnumType.STRING)
 	private UserRole role;
 	@ElementCollection(fetch = FetchType.LAZY)
-    @CollectionTable(
-        name = "user_post_ids",
-        joinColumns = @JoinColumn(name = "user_id")
-    )
-    @Column(name = "post_id")
+	@CollectionTable(name = "user_post_ids", joinColumns = @JoinColumn(name = "user_id"))
+	@Column(name = "post_id")
 	private List<Long> postIds;
 }
