@@ -14,16 +14,27 @@ public class UserEventConsumer {
 		this.emailService = emailService;
 	}
 
-	@KafkaListener(topics = { "user-deleted", "user-registered" }, groupId = "user-service-groups")
+	@KafkaListener(topics = { "user-deleted", "user-updated", "user-registered" }, groupId = "user-service-groups")
 	public void handleUserEvents(UserEvent event) {
+		String email = event.getEmail();
 		if (event.getEventType().equals(KafkaEvent.REGISTERED.name())) {
-			String email = event.getEmail();
 			if (email != null && !email.isBlank()) {
 				emailService.sendEmail(email, "REGISTRATION SUCCESSFULL",
 						"Hello " + event.getUsername() + ", your account has been created successfully");
 			}
-			System.err.println(emailService);
+
 		}
-		
+		if (event.getEventType().equals(KafkaEvent.UPDATED.name())) {
+			if (email != null && !email.isBlank()) {
+				emailService.sendEmail(email, "User Details are Updated",
+						"Hi " + event.getUsername() + ",\n\n"
+								+ "This is a confirmation that your account details were updated.\n\n"
+								+ "Updated details: " + event.getEmail() + "\nDisplay name: " + event.getDisplayName()
+								+ ",\nusername: " + event.getUsername() + ",\nBio: " + event.getBio() + "\n"
+								+ "Best regards,\n" + "\tThe Support Team");
+			}
+
+		}
+
 	}
 }
