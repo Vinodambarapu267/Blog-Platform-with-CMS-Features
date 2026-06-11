@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import com.example.demo.utility.UserRole;
@@ -24,7 +26,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.MapKeyColumn;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -43,7 +44,8 @@ public class User implements Serializable {
 	private String username;
 	private String displayName;
 	private String bio;
-	@ElementCollection(fetch = FetchType.LAZY)
+	@ElementCollection(fetch = FetchType.EAGER)
+	@Fetch(FetchMode.SUBSELECT)
 	@CollectionTable(name = "user_social_links", joinColumns = @JoinColumn(name = "user_id"))
 	@MapKeyColumn(name = "platform") // e.g. "linkedin", "github"
 	@Column(name = "url")
@@ -58,7 +60,9 @@ public class User implements Serializable {
 	private LocalDateTime updatedAt;
 	@Enumerated(EnumType.STRING)
 	private UserRole role;
-	@ElementCollection(fetch = FetchType.LAZY)
+	
+	@ElementCollection(fetch = FetchType.EAGER)
+	@Fetch(FetchMode.SUBSELECT)
 	@CollectionTable(name = "user_post_ids", joinColumns = @JoinColumn(name = "user_id"))
 	@Column(name = "post_id")
 	private List<Long> postIds;

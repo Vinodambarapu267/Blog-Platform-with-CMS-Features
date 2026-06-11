@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
@@ -120,11 +121,6 @@ public class UserServiceImpl implements UserService {
 	@Transactional
 	public UserResponseDto findByUserName(String username) {
 		User user = repository.findByUsername(username).orElseThrow(() -> new UserNotFoundException("User not found"));
-
-		// Force initialization if necessary (for lazy collections)
-		user.getSocialLinks().size();
-		user.getPostIds().size();
-		user.getEmail();
 		UserResponseDto dto = new UserResponseDto();
 		dto.setUserId(user.getUserId());
 		dto.setUsername(user.getUsername());
@@ -133,8 +129,9 @@ public class UserServiceImpl implements UserService {
 		dto.setStatus(user.getStatus());
 		dto.setRole(user.getRole());
 		dto.setSocialLinks(new HashMap<>(user.getSocialLinks()));
-		dto.setPostIds(new ArrayList<>(user.getPostIds()));
-
+		dto.setPostIds(user.getPostIds().stream()
+			    .distinct()
+			    .collect(Collectors.toList()));
 		return dto;
 	}
 
@@ -224,7 +221,18 @@ public class UserServiceImpl implements UserService {
 		}
 
 		user.getPostIds().add(event.getPostId());
-		repository.save(user);
+		User save = repository.save(user);
+		UserEvent userEvent = new UserEvent();
+	
+		userEvent.setUserId(save.getUserId());
+		userEvent.setUsername(save.getUsername());
+		userEvent.setDisplayName(save.getDisplayName());
+		userEvent.setBio(save.getBio());
+		userEvent.setEmail(save.getEmail());
+		userEvent.setSocialLinks(save.getSocialLinks());
+		userEvent.setEventType(KafkaEvent.UPDATED.name());
+		System.err.println(userEvent.getEmail());
+		kafkaUserProducer.publishedUpdatedEvent(userEvent);
 
 	}
 
