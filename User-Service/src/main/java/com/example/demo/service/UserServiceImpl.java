@@ -7,12 +7,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Service;
 
@@ -83,6 +81,7 @@ public class UserServiceImpl implements UserService {
 
 	@CachePut(value = "updateUser", key = "#userId")
 	@Override
+	@Modifying
 	public UserResponseDto updateUser(Long userId, UserDto userDto) {
 		User existedUser = repository.findById(userId)
 				.orElseThrow(() -> new UserNotFoundException("User not found :" + userId));
@@ -103,6 +102,15 @@ public class UserServiceImpl implements UserService {
 			existedUser.getSocialLinks().putAll(userDto.getSocialLinks());
 		}
 		User update = repository.save(existedUser);
+		UserEvent event = new UserEvent();
+		event.setUserId(update.getUserId());
+		event.setUsername(update.getUsername());
+		event.setDisplayName(update.getDisplayName());
+		event.setBio(update.getBio());
+		event.setEmail(existedUser.getEmail());
+		event.setSocialLinks(update.getSocialLinks());
+		event.setEventType(KafkaEvent.UPDATED.name());
+		kafkaUserProducer.publishedUpdatedEvent(event);
 		return new UserResponseDto(update.getUserId(), update.getUsername(), update.getDisplayName(), update.getBio(),
 				update.getSocialLinks(), update.getStatus(), update.getEmail(), update.getCreatedAt(), update.getRole(),
 				update.getPostIds());
@@ -138,7 +146,7 @@ public class UserServiceImpl implements UserService {
 		UserEvent event = new UserEvent();
 		event.setUserId(user.getUserId());
 		event.setEventType(KafkaEvent.DELETED.name());
-		kafkaUserProducer.deleteUserEvent(event);
+		kafkaUserProducer.publishedDeletedEvent(event);
 		repository.delete(user);
 	}
 
@@ -152,7 +160,8 @@ public class UserServiceImpl implements UserService {
 		user.setStatus(updateStatus(status));
 		User save = repository.save(user);
 		return new UserResponseDto(save.getUserId(), save.getUsername(), save.getDisplayName(), save.getBio(),
-				save.getSocialLinks(), save.getStatus(),save.getEmail(), save.getUpdatedAt(), save.getRole(), save.getPostIds());
+				save.getSocialLinks(), save.getStatus(), save.getEmail(), save.getUpdatedAt(), save.getRole(),
+				save.getPostIds());
 	}
 
 	@Override
@@ -166,8 +175,8 @@ public class UserServiceImpl implements UserService {
 
 		return allWithDetails.stream()
 				.map(user -> new UserResponseDto(user.getUserId(), user.getUsername(), user.getDisplayName(),
-						user.getBio(), new HashMap<>(user.getSocialLinks()), user.getStatus(),user.getEmail(), user.getCreatedAt(),
-						user.getRole(), new ArrayList<>(user.getPostIds())))
+						user.getBio(), new HashMap<>(user.getSocialLinks()), user.getStatus(), user.getEmail(),
+						user.getCreatedAt(), user.getRole(), new ArrayList<>(user.getPostIds())))
 				.toList();
 	}
 

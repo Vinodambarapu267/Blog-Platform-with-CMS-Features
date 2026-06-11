@@ -14,7 +14,11 @@ public class KafkaUserProducer {
 		kafkaTemplate.send("user-registered", event.getUserId().toString(), event);
 	}
 
-	public void deleteUserEvent(UserEvent event) {
+	public void publishedDeletedEvent(UserEvent event) {
 		kafkaTemplate.send("user-deleted", event.getUserId().toString(), event);
+	}
+
+	public void publishedUpdatedEvent(UserEvent event) {
+		kafkaTemplate.send("user-updated", event.getUserId().toString(), event);
 	}
 }
