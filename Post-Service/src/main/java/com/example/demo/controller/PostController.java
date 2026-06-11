@@ -77,6 +77,12 @@ public class PostController {
 				"Post liked succcessfully", like));
 	}
 
+	@GetMapping("/{postId}")
+	public PostDto findByPostId(@PathVariable Long postId) {
+		PostDto post = postService.findById(postId);
+		return post;
+	}
+
 	@GetMapping("/{id}/likes")
 	@RateLimiter(name = "myRateLimiter")
 	public Integer getTotalLikes(@PathVariable("id") Long postId) {

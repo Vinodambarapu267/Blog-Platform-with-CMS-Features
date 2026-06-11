@@ -27,4 +27,6 @@ public interface PostService {
 	public int totalLikes(Long postId);
 
 	public void deleteAllPostByUserId(Long userId);
+
+	public PostDto findById(Long postId);
 }

@@ -222,6 +222,26 @@ public class PostServiceImpl implements PostService {
 		return like_count;
 	}
 
+	@Override
+	public PostDto findById(Long postId) {
+		Post post = postRepostiory.findById(postId)
+				.orElseThrow(() -> new PostNotFoundException("post not found by this post ID : " + postId));
+		PostDto dto = new PostDto();
+		dto.setPostId(post.getPostId());
+		dto.setTitle(post.getTitle());
+		dto.setSlug(post.getSlug());
+		dto.setContent(post.getContent());
+		dto.setExcerpt(post.getExcerpt());
+		dto.setStatus(post.getStatus());
+		dto.setAuthorId(post.getAuthorId());
+		dto.setCategoryId(post.getCategoryId());
+		dto.setViewCount(post.getViewCount());
+		dto.setLikeCount(post.getLikeCount());
+		dto.setPulishedAt(post.getPublishedAt());
+		dto.setCreatedAt(post.getCreatedAt());
+		return dto;
+	}
+
 	private static PostStatus updatStatus(String status) {
 		return switch (status) {
 		case "ARCHIVED" -> PostStatus.ARCHIVED;

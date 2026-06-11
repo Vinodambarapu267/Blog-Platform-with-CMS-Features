@@ -1,6 +1,8 @@
 package com.example.demo.dto;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import com.example.demo.utility.PostStatus;
 
@@ -15,6 +17,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PostDto {
+	private Long postId;
 	@Column(nullable = false)
 	private String title;
 	@Column(nullable = false, unique = true)
@@ -34,11 +37,11 @@ public class PostDto {
 	private Integer likeCount;
 
 	@Column(nullable = true)
-	private Instant pulishedAt;
+	private LocalDateTime pulishedAt;
 
 	@Column(nullable = false)
-	private Instant createdAt;
+	private LocalDateTime createdAt;
 
 	@Column(nullable = false)
-	private Instant updatedAt;
+	private LocalDateTime updatedAt;
 }
