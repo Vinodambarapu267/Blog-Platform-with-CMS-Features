@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Tags {
+public class Tag {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 
@@ -27,7 +27,7 @@ public class Tags {
 	@Column(nullable = false)
 	private int postCount = 0;
 
-	public Tags(String tagName) {
+	public Tag(String tagName) {
 		this.tagName = tagName;
 	}
 }

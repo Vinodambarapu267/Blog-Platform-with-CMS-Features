@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 
 import com.example.demo.dto.PostDto;
 import com.example.demo.entity.Post;
-import com.example.demo.entity.PostLikes;
+import com.example.demo.entity.PostLike;
 
 @Service
 public interface PostService {
@@ -20,7 +20,7 @@ public interface PostService {
 
 	public String updatePostStatus(Long postId, String status);
 
-	public Post addLike(Long postId, PostLikes likes);
+	public Post addLike(Long postId, PostLike likes);
 
 	public List<Post> findAllPost();
 

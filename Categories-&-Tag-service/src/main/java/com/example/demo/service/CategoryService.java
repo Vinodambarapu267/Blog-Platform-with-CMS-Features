@@ -4,18 +4,18 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 
 import com.example.demo.dto.CategoryDto;
-import com.example.demo.entity.Categories;
+import com.example.demo.entity.Category;
 @Service
 public interface CategoryService {
-	public Categories createCategory(CategoryDto dto);
+	public Category createCategory(CategoryDto dto);
 
-	public Categories updateCategories(Long cId, CategoryDto category);
+	public Category updateCategories(Long cId, CategoryDto category);
 
 	public void deleteCatory(Long cId);
 
 	public String isExistCatgory(Long cId);
 
-	public Page<Categories> getAllCategories(int page, String sortBy);
+	public Page<Category> getAllCategories(int page, String sortBy);
 
 	
 

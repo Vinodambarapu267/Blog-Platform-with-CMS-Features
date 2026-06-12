@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.example.demo.entity.Post;
 
-public interface PostRepostiory extends JpaRepository<Post, Long> {
+public interface PostRepository extends JpaRepository<Post, Long> {
 	Optional<Post> findBySlug(String slug);
 
 	void deleteAllByauthorId(Long userId);

@@ -8,10 +8,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
-import com.example.demo.entity.Tags;
+import com.example.demo.entity.Tag;
 
-public interface TagsRepository extends JpaRepository<Tags, Long> {
+public interface TagsRepository extends JpaRepository<Tag, Long> {
 	@Query("SELECT t FROM Tags t ORDER BY t.postCount DESC")
-	Page<Tags> findPopularTags(Pageable pageable);
-	List<Tags> findByTagNameIn(Collection<String> names);
+	Page<Tag> findPopularTags(Pageable pageable);
+	List<Tag> findByTagNameIn(Collection<String> names);
 }

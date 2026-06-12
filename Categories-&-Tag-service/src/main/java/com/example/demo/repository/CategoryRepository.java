@@ -7,12 +7,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.example.demo.entity.Categories;
+import com.example.demo.entity.Category;
 
-public interface CategoryRepository extends JpaRepository<Categories, Long> {
-	Page<Categories> findAll(Pageable pageable);
+public interface CategoryRepository extends JpaRepository<Category, Long> {
+	Page<Category> findAll(Pageable pageable);
 
-	Optional<Categories> findByCategorySlug(String cSlug);
+	Optional<Category> findByCategorySlug(String cSlug);
 
 	boolean existsByParentCategoryId(Long categoryId);
 

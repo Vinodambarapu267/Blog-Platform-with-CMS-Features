@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.demo.dto.CategoryDto;
-import com.example.demo.entity.Categories;
+import com.example.demo.entity.Category;
 import com.example.demo.service.CategoryService;
 import com.example.demo.utility.ResponseMessage;
 import com.example.demo.utility.ResponseStatus;
@@ -32,7 +32,7 @@ public class CategoryController {
 
 	@PostMapping("/createcategory")
 	public ResponseEntity<?> createCategory(@RequestBody CategoryDto categories) {
-		Categories category = categoryService.createCategory(categories);
+		Category category = categoryService.createCategory(categories);
 		if (category == null) {
 			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_NOT_FOUND,
 					ResponseStatus.FAILURE.name(), "Category creating failed"));
@@ -43,7 +43,7 @@ public class CategoryController {
 
 	@PutMapping("/updateCategory/{categoryId}")
 	public ResponseEntity<?> updateById(@PathVariable("categoryId") Long id, @RequestBody CategoryDto categoryDto) {
-		Categories updateCategories = categoryService.updateCategories(id, categoryDto);
+		Category updateCategories = categoryService.updateCategories(id, categoryDto);
 		if (updateCategories == null) {
 			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_NOT_FOUND,
 					ResponseStatus.FAILURE.name(), "Category updating failed"));
@@ -55,7 +55,7 @@ public class CategoryController {
 	@GetMapping
 	@RateLimiter(name = "myRateLimiter", fallbackMethod = "rateLimitFallback")
 	public ResponseEntity<?> getAllCategories(@RequestParam int page, @RequestParam String soryBy) {
-		Page<Categories> allCategories = categoryService.getAllCategories(page, soryBy);
+		Page<Category> allCategories = categoryService.getAllCategories(page, soryBy);
 		if (allCategories == null) {
 			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_NOT_FOUND,
 					ResponseStatus.FAILURE.name(), "Category Retriving failed"));

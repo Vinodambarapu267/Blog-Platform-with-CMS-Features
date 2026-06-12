@@ -27,7 +27,7 @@ import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @RestController
 @RequestMapping("/api/v1/users")
-public class UsersControllers {
+public class UserController {
 	@Autowired
 	private UserService userService;
 

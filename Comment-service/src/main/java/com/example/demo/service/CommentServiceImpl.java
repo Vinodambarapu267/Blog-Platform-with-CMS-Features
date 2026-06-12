@@ -15,7 +15,7 @@ import com.example.demo.entity.Comment;
 import com.example.demo.exception.CommentNotFoundException;
 import com.example.demo.exception.PostNotFoundException;
 import com.example.demo.kafka.CommentEvent;
-import com.example.demo.kafka.CommentKafkaProducer;
+import com.example.demo.kafka.KafkaCommentProducer;
 import com.example.demo.repository.CommentRepository;
 import com.example.demo.utility.CommentStatus;
 import com.example.demo.utility.KafkaEvent;
@@ -27,7 +27,7 @@ public class CommentServiceImpl implements CommentService {
 	@Autowired
 	private CommentRepository commentRepository;
 	@Autowired
-	private CommentKafkaProducer commentKafkaProducer;
+	private KafkaCommentProducer commentKafkaProducer;
 
 	@Override
 	public Comment addComment(Long postId, CommentDto comment) {

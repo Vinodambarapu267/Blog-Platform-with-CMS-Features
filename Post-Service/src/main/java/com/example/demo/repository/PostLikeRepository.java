@@ -8,10 +8,10 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.example.demo.entity.Post;
-import com.example.demo.entity.PostLikes;
+import com.example.demo.entity.PostLike;
 
-public interface PostLikeRepository extends JpaRepository<PostLikes, Long> {
-	Optional<PostLikes> findByPostAndUserId(Post post, Long userId);
+public interface PostLikeRepository extends JpaRepository<PostLike, Long> {
+	Optional<PostLike> findByPostAndUserId(Post post, Long userId);
 
 	@Modifying
 	@Query("DELETE FROM PostLikes pl WHERE pl.post.postId = :postId")

@@ -10,11 +10,11 @@ import com.example.demo.emailService.EmailService;
 import com.example.demo.utility.KafkaEvent;
 
 @Component
-public class KafkaPostConsumer {
+public class KafkaPostEventConsumer {
 
 	private final EmailService emailService;
 
-	public KafkaPostConsumer(EmailService emailService) {
+	public KafkaPostEventConsumer(EmailService emailService) {
 		this.emailService = emailService;
 	}
 

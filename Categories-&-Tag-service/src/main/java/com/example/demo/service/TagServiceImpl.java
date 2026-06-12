@@ -1,4 +1,4 @@
-package com.example.demo.service_impl;
+package com.example.demo.service;
 
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -17,14 +17,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.demo.dto.TagResponse;
-import com.example.demo.entity.Tags;
+import com.example.demo.entity.Tag;
 import com.example.demo.exception.TagNotFoundException;
 import com.example.demo.repository.TagsRepository;
-import com.example.demo.service.TagService;
 
 @Service
 @Transactional
-public class TagsServiceImpl implements TagService {
+public class TagServiceImpl implements TagService {
 
 	@Autowired
 	private TagsRepository repository;
@@ -38,11 +37,11 @@ public class TagsServiceImpl implements TagService {
 			return List.of();
 
 		// Step 2 — find tags that already exist in DB
-		Map<String, Tags> existingMap = repository.findByTagNameIn(normalized).stream()
-				.collect(Collectors.toMap(Tags::getTagName, Function.identity()));
+		Map<String, Tag> existingMap = repository.findByTagNameIn(normalized).stream()
+				.collect(Collectors.toMap(Tag::getTagName, Function.identity()));
 
 		// Step 3 — create only the ones that don't exist
-		normalized.stream().filter(name -> !existingMap.containsKey(name)).map(name -> repository.save(new Tags(name)))
+		normalized.stream().filter(name -> !existingMap.containsKey(name)).map(name -> repository.save(new Tag(name)))
 				.forEach(tag -> existingMap.put(tag.getTagName(), tag));
 
 		// Step 4 — return all tags
@@ -52,22 +51,22 @@ public class TagsServiceImpl implements TagService {
 
 	@Cacheable(value = "popularTags", key = "'all'")
 	@Override
-	public Page<Tags> findAllPopularTags(Pageable pageable) {
-		Page<Tags> popular = repository.findPopularTags(pageable);
+	public Page<Tag> findAllPopularTags(Pageable pageable) {
+		Page<Tag> popular = repository.findPopularTags(pageable);
 		return popular;
 	}
 
 	@CacheEvict(value = "tags", key = "#cId")
 	@Override
 	public void deleteTag(Long id) {
-		Tags tags = repository.findById(id).orElseThrow(() -> new TagNotFoundException("Tag not found"));
+		Tag tags = repository.findById(id).orElseThrow(() -> new TagNotFoundException("Tag not found"));
 		repository.delete(tags);
 	}
 
 	@CacheEvict(value = "tags", key = "'all'")
 	@Override
-	public List<Tags> findAll() {
-		List<Tags> allTags = repository.findAll();
+	public List<Tag> findAll() {
+		List<Tag> allTags = repository.findAll();
 		if (allTags.isEmpty()) {
 			throw new TagNotFoundException("No tages found");
 		}

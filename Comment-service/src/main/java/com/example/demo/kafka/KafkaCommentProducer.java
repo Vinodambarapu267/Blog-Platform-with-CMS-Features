@@ -5,7 +5,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
-public class CommentKafkaProducer {
+public class KafkaCommentProducer {
 
 	@Autowired
 	private KafkaTemplate<String, CommentEvent> kafkaTemplate;

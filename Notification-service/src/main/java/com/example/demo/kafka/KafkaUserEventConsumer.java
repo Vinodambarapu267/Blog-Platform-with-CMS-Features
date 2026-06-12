@@ -7,10 +7,10 @@ import com.example.demo.emailService.EmailService;
 import com.example.demo.utility.KafkaEvent;
 
 @Service
-public class UserEventConsumer {
+public class KafkaUserEventConsumer {
 	private final EmailService emailService;
 
-	UserEventConsumer(EmailService emailService) {
+	KafkaUserEventConsumer(EmailService emailService) {
 		this.emailService = emailService;
 	}
 

@@ -7,16 +7,16 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.example.demo.dto.TagResponse;
-import com.example.demo.entity.Tags;
+import com.example.demo.entity.Tag;
 
 @Service
 public interface TagService {
 	public List<TagResponse> resolveTags(List<String> names);
 
-	public Page<Tags> findAllPopularTags(Pageable pageable);
+	public Page<Tag> findAllPopularTags(Pageable pageable);
 
 	public void deleteTag(Long id);
 
-	public List<Tags> findAll();
+	public List<Tag> findAll();
 
 }

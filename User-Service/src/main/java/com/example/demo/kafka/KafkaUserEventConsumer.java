@@ -10,12 +10,12 @@ import com.example.demo.utility.KafkaPostEvent;
 @Component
 public class KafkaUserEventConsumer {
 	@Autowired
-	private UserService service;
+	private UserService userService;
 
 	@KafkaListener(topics = { "post-published", "post-updated", "post-deleted" }, groupId = "post-service-group")
 	public void handlePostEvent(PostEvent event) {
 		if (event.getEventType().equals(KafkaPostEvent.PUBLISHED.name())) {
-			service.addPost(event.getAuthorId(), event);
+			userService.addPost(event.getAuthorId(), event);
 		}
 	}
 }

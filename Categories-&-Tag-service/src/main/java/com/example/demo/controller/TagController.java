@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.demo.dto.TagResolveRequest;
 import com.example.demo.dto.TagResponse;
-import com.example.demo.entity.Tags;
+import com.example.demo.entity.Tag;
 import com.example.demo.service.TagService;
 import com.example.demo.utility.ResponseMessage;
 import com.example.demo.utility.ResponseStatus;
@@ -29,7 +29,7 @@ import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 @RestController
 @RequestMapping("/api/v1/tags")
-public class TagsController {
+public class TagController {
 	@Autowired
 	private TagService tagService;
 
@@ -53,7 +53,7 @@ public class TagsController {
 	@GetMapping
 	@RateLimiter(name = "myRateLimiter", fallbackMethod = "tagsFallback")
 	public ResponseEntity<?> findAll() {
-		List<Tags> all = tagService.findAll();
+		List<Tag> all = tagService.findAll();
 
 		if (all.isEmpty()) {
 			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_NOT_FOUND,
@@ -65,11 +65,11 @@ public class TagsController {
 
 	@GetMapping("/popular")
 	@RateLimiter(name = "myRateLimiter", fallbackMethod = "tagsFallback")
-	public ResponseEntity<Page<Tags>> getPopularTags(@RequestParam(defaultValue = "0") int page,
+	public ResponseEntity<Page<Tag>> getPopularTags(@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "20") int size) {
 
 		Pageable pageable = PageRequest.of(page, size);
-		Page<Tags> popularTags = tagService.findAllPopularTags(pageable);
+		Page<Tag> popularTags = tagService.findAllPopularTags(pageable);
 		return ResponseEntity.ok(popularTags);
 	}
 	public ResponseEntity<?> tagsFallback(Throwable t) {

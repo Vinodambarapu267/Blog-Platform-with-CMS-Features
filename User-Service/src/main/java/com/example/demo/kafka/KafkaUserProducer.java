@@ -10,15 +10,15 @@ import lombok.RequiredArgsConstructor;
 public class KafkaUserProducer {
 	private final KafkaTemplate<String, UserEvent> kafkaTemplate;
 
-	public void publishedRegisterPublishedEvent(UserEvent event) {
+	public void publishUserRegisteredEvent(UserEvent event) {
 		kafkaTemplate.send("user-registered", event.getUserId().toString(), event);
 	}
 
-	public void publishedDeletedEvent(UserEvent event) {
+	public void publishUserDeletedEvent(UserEvent event) {
 		kafkaTemplate.send("user-deleted", event.getUserId().toString(), event);
 	}
 
-	public void publishedUpdatedEvent(UserEvent event) {
+	public void publishUserUpdatedEvent(UserEvent event) {
 		kafkaTemplate.send("user-updated", event.getUserId().toString(), event);
 	}
 }

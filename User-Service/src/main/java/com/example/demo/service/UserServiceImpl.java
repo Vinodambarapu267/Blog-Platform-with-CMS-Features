@@ -18,13 +18,13 @@ import org.springframework.stereotype.Service;
 import com.example.demo.dto.UserDto;
 import com.example.demo.dto.UserResponseDto;
 import com.example.demo.entity.User;
-import com.example.demo.excpetion.UserAlreadyExistException;
-import com.example.demo.excpetion.UserNotFoundException;
+import com.example.demo.excepetion.UserAlreadyExistException;
+import com.example.demo.excepetion.UserNotFoundException;
 import com.example.demo.kafka.KafkaUserProducer;
 import com.example.demo.kafka.PostEvent;
 import com.example.demo.kafka.UserEvent;
-import com.example.demo.repository.UsersRepository;
-import com.example.demo.utility.KafkaEvent;
+import com.example.demo.repository.UserRepository;
+import com.example.demo.utility.KafkaUserEvent;
 import com.example.demo.utility.UserStatus;
 
 import jakarta.transaction.Transactional;
@@ -33,7 +33,7 @@ import jakarta.transaction.Transactional;
 public class UserServiceImpl implements UserService {
 
 	@Autowired
-	private UsersRepository repository;
+	private UserRepository repository;
 	@Autowired
 	private KafkaUserProducer kafkaUserProducer;
 
@@ -60,24 +60,24 @@ public class UserServiceImpl implements UserService {
 		}
 		newUser.setEmail(user.getEmail());
 		newUser.setSocialLinks(links);
-		User save = repository.save(newUser);
+		User savedUser  = repository.save(newUser);
 		UserEvent event = new UserEvent();
-		event.setUserId(save.getUserId());
-		event.setBio(save.getBio());
-		event.setUsername(save.getUsername());
-		event.setDisplayName(save.getDisplayName());
-		event.setSocialLinks(save.getSocialLinks());
+		event.setUserId(savedUser .getUserId());
+		event.setBio(savedUser .getBio());
+		event.setUsername(savedUser .getUsername());
+		event.setDisplayName(savedUser .getDisplayName());
+		event.setSocialLinks(savedUser .getSocialLinks());
 		event.setEventType("user.registered");
 		event.setCreatedAt(LocalDateTime.now());
-		event.setUpdatedAt(save.getUpdatedAt());
-		event.setStatus(save.getStatus());
-		event.setRole(save.getRole());
-		event.setEmail(save.getEmail());
-		event.setEventType(KafkaEvent.REGISTERED.name());
-		kafkaUserProducer.publishedRegisterPublishedEvent(event);
-		return new UserResponseDto(save.getUserId(), save.getUsername(), save.getDisplayName(), save.getBio(),
-				save.getSocialLinks(), save.getStatus(), save.getEmail(), save.getCreatedAt(), save.getRole(),
-				save.getPostIds());
+		event.setUpdatedAt(savedUser .getUpdatedAt());
+		event.setStatus(savedUser .getStatus());
+		event.setRole(savedUser .getRole());
+		event.setEmail(savedUser .getEmail());
+		event.setEventType(KafkaUserEvent.REGISTERED.name());
+		kafkaUserProducer.publishUserRegisteredEvent(event);
+		return new UserResponseDto(savedUser .getUserId(), savedUser .getUsername(), savedUser .getDisplayName(), savedUser .getBio(),
+				savedUser .getSocialLinks(), savedUser .getStatus(), savedUser .getEmail(), savedUser .getCreatedAt(), savedUser .getRole(),
+				savedUser .getPostIds());
 	}
 
 	@CachePut(value = "updateUser", key = "#userId")
@@ -102,19 +102,19 @@ public class UserServiceImpl implements UserService {
 		if (userDto.getSocialLinks() != null) {
 			existedUser.getSocialLinks().putAll(userDto.getSocialLinks());
 		}
-		User update = repository.save(existedUser);
+		User updatedUser = repository.save(existedUser);
 		UserEvent event = new UserEvent();
-		event.setUserId(update.getUserId());
-		event.setUsername(update.getUsername());
-		event.setDisplayName(update.getDisplayName());
-		event.setBio(update.getBio());
+		event.setUserId(updatedUser.getUserId());
+		event.setUsername(updatedUser.getUsername());
+		event.setDisplayName(updatedUser.getDisplayName());
+		event.setBio(updatedUser.getBio());
 		event.setEmail(existedUser.getEmail());
-		event.setSocialLinks(update.getSocialLinks());
-		event.setEventType(KafkaEvent.UPDATED.name());
-		kafkaUserProducer.publishedUpdatedEvent(event);
-		return new UserResponseDto(update.getUserId(), update.getUsername(), update.getDisplayName(), update.getBio(),
-				update.getSocialLinks(), update.getStatus(), update.getEmail(), update.getCreatedAt(), update.getRole(),
-				update.getPostIds());
+		event.setSocialLinks(updatedUser.getSocialLinks());
+		event.setEventType(KafkaUserEvent.UPDATED.name());
+		kafkaUserProducer.publishUserUpdatedEvent(event);
+		return new UserResponseDto(updatedUser.getUserId(), updatedUser.getUsername(), updatedUser.getDisplayName(), updatedUser.getBio(),
+				updatedUser.getSocialLinks(), updatedUser.getStatus(), updatedUser.getEmail(), updatedUser.getCreatedAt(), updatedUser.getRole(),
+				updatedUser.getPostIds());
 	}
 
 	@Override
@@ -140,8 +140,8 @@ public class UserServiceImpl implements UserService {
 				.orElseThrow(() -> new UserNotFoundException("User not Found with this name : " + username));
 		UserEvent event = new UserEvent();
 		event.setUserId(user.getUserId());
-		event.setEventType(KafkaEvent.DELETED.name());
-		kafkaUserProducer.publishedDeletedEvent(event);
+		event.setEventType(KafkaUserEvent.DELETED.name());
+		kafkaUserProducer.publishUserDeletedEvent(event);
 		repository.delete(user);
 	}
 
@@ -152,7 +152,7 @@ public class UserServiceImpl implements UserService {
 	public UserResponseDto updateStatus(String username, String status) {
 		User user = repository.findByUsername(username)
 				.orElseThrow(() -> new UserNotFoundException("User not Found with this name : " + username));
-		user.setStatus(updateStatus(status));
+		user.setStatus(parseUserStatus(status));
 		User save = repository.save(user);
 		return new UserResponseDto(save.getUserId(), save.getUsername(), save.getDisplayName(), save.getBio(),
 				save.getSocialLinks(), save.getStatus(), save.getEmail(), save.getUpdatedAt(), save.getRole(),
@@ -175,7 +175,7 @@ public class UserServiceImpl implements UserService {
 				.toList();
 	}
 
-	private UserStatus updateStatus(String status) {
+	private UserStatus parseUserStatus(String status) {
 
 		return switch (status.toUpperCase()) {
 		case "ACTIVE" -> UserStatus.ACTIVE;
@@ -195,7 +195,7 @@ public class UserServiceImpl implements UserService {
 		result.setBio(user.getBio());
 		result.setCreatedAt(user.getCreatedAt());
 		result.setDisplayName(user.getDisplayName());
-		result.setIsActive(user.getStatus());
+		result.setStatus(user.getStatus());
 		result.setUpdatedAt(user.getUpdatedAt());
 		result.setPostIds(user.getPostIds());
 		result.setSocialLinks(user.getSocialLinks());
@@ -220,18 +220,18 @@ public class UserServiceImpl implements UserService {
 		}
 
 		user.getPostIds().add(event.getPostId());
-		User save = repository.save(user);
+		User savedUser = repository.save(user);
 		UserEvent userEvent = new UserEvent();
 
-		userEvent.setUserId(save.getUserId());
-		userEvent.setUsername(save.getUsername());
-		userEvent.setDisplayName(save.getDisplayName());
-		userEvent.setBio(save.getBio());
-		userEvent.setEmail(save.getEmail());
-		userEvent.setSocialLinks(save.getSocialLinks());
-		userEvent.setEventType(KafkaEvent.UPDATED.name());
+		userEvent.setUserId(savedUser.getUserId());
+		userEvent.setUsername(savedUser.getUsername());
+		userEvent.setDisplayName(savedUser.getDisplayName());
+		userEvent.setBio(savedUser.getBio());
+		userEvent.setEmail(savedUser.getEmail());
+		userEvent.setSocialLinks(savedUser.getSocialLinks());
+		userEvent.setEventType(KafkaUserEvent.UPDATED.name());
 		System.err.println(userEvent.getEmail());
-		kafkaUserProducer.publishedUpdatedEvent(userEvent);
+		kafkaUserProducer.publishUserUpdatedEvent(userEvent);
 
 	}
 

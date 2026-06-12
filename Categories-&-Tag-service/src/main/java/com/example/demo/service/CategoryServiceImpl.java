@@ -1,4 +1,4 @@
-package com.example.demo.service_impl;
+package com.example.demo.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
@@ -11,11 +11,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import com.example.demo.dto.CategoryDto;
-import com.example.demo.entity.Categories;
+import com.example.demo.entity.Category;
 import com.example.demo.exception.CategoryNotFoundException;
 import com.example.demo.exception.SlugAlreadyExistException;
 import com.example.demo.repository.CategoryRepository;
-import com.example.demo.service.CategoryService;
 
 import jakarta.transaction.Transactional;
 
@@ -28,18 +27,18 @@ public class CategoryServiceImpl implements CategoryService {
 
 	@Override
 
-	public Categories createCategory(CategoryDto dto) {
+	public Category createCategory(CategoryDto dto) {
 		if (categoryRepository.findByCategorySlug(dto.getCategorySlug()).isPresent()) {
 			throw new SlugAlreadyExistException("Slug already exists");
 		}
 
-		Categories category = new Categories();
+		Category category = new Category();
 		category.setCategoryName(dto.getCategoryName());
 		category.setCategorySlug(dto.getCategorySlug());
 		category.setDescription(dto.getDescription());
 
 		if (dto.getParentId() != null) {
-			Categories parentCategory = categoryRepository.findById(dto.getParentId())
+			Category parentCategory = categoryRepository.findById(dto.getParentId())
 					.orElseThrow(() -> new CategoryNotFoundException("Parent category not found"));
 			category.setParent(parentCategory);
 		} else {
@@ -51,14 +50,14 @@ public class CategoryServiceImpl implements CategoryService {
 
 	@CachePut(value = "category", key = "#cId")
 	@Override
-	public Categories updateCategories(Long cId, CategoryDto category) {
-		Categories existedCategory = categoryRepository.findById(cId)
+	public Category updateCategories(Long cId, CategoryDto category) {
+		Category existedCategory = categoryRepository.findById(cId)
 				.orElseThrow(() -> new CategoryNotFoundException("Category not found exception"));
 		if (categoryRepository.findByCategorySlug(category.getCategorySlug()).isPresent()) {
 			throw new SlugAlreadyExistException("Slug already Existed :" + category.getCategorySlug());
 		}
 		if (category.getParentId() != null) {
-			Categories parentCategory = categoryRepository.findById(category.getParentId())
+			Category parentCategory = categoryRepository.findById(category.getParentId())
 					.orElseThrow(() -> new CategoryNotFoundException("Parent category not found"));
 			existedCategory.setParent(parentCategory);
 		} else {
@@ -74,7 +73,7 @@ public class CategoryServiceImpl implements CategoryService {
 	@Override
 	@CacheEvict(value = "deleteCategory", key = "#cId")
 	public void deleteCatory(Long cId) {
-		Categories category = categoryRepository.findById(cId)
+		Category category = categoryRepository.findById(cId)
 				.orElseThrow(() -> new CategoryNotFoundException("Category not Found"));
 		categoryRepository.delete(category);
 	}
@@ -89,9 +88,9 @@ public class CategoryServiceImpl implements CategoryService {
 	@Override
 	@Cacheable(value = "allCategories", key = "'all'")
 	@Transactional()
-	public Page<Categories> getAllCategories(int page, String sortBy) {
+	public Page<Category> getAllCategories(int page, String sortBy) {
 		Pageable pageable = PageRequest.of(page, 10, Sort.by(sortBy).ascending()); // ← page=1, size=10
-		Page<Categories> categories = categoryRepository.findAll(pageable);
+		Page<Category> categories = categoryRepository.findAll(pageable);
 		return categories;
 	}
 }

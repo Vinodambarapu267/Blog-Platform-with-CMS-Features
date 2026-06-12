@@ -24,7 +24,7 @@ public class UserDto {
 
 	private Map<String, String> socialLinks;
 	@Enumerated(EnumType.STRING)
-	private UserStatus isActive = UserStatus.ACTIVE;
+	private UserStatus status = UserStatus.ACTIVE;
 	private String email;
 	private LocalDateTime createdAt;
 	private LocalDateTime updatedAt;

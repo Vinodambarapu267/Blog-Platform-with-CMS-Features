@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.demo.dto.PostDto;
 import com.example.demo.entity.Post;
-import com.example.demo.entity.PostLikes;
+import com.example.demo.entity.PostLike;
 import com.example.demo.service.PostService;
 import com.example.demo.utility.ResponseMessage;
 import com.example.demo.utility.ResponseStatus;
@@ -67,7 +67,7 @@ public class PostController {
 
 	@PostMapping("/{id}/like")
 	@RateLimiter(name = "myRateLimiter")
-	public ResponseEntity<?> addLike(@PathVariable("id") Long postId, @RequestBody PostLikes likes) {
+	public ResponseEntity<?> addLike(@PathVariable("id") Long postId, @RequestBody PostLike likes) {
 		Post like = postService.addLike(postId, likes);
 		if (like == null) {
 			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_BAD_REQUEST,

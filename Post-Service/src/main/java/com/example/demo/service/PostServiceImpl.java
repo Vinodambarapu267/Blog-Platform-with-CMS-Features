@@ -13,26 +13,26 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.demo.dto.PostDto;
 import com.example.demo.dto.UserDto;
 import com.example.demo.entity.Post;
-import com.example.demo.entity.PostLikes;
+import com.example.demo.entity.PostLike;
 import com.example.demo.exception.PostAlreadyExistException;
 import com.example.demo.exception.PostNotFoundException;
 import com.example.demo.exception.UserNotFoundException;
 import com.example.demo.feignclients.UserFeignClient;
-import com.example.demo.kafka.KafkaEventProducer;
+import com.example.demo.kafka.KafkaPostEventProducer;
 import com.example.demo.kafka.PostEvent;
 import com.example.demo.repository.PostLikeRepository;
-import com.example.demo.repository.PostRepostiory;
+import com.example.demo.repository.PostRepository;
 import com.example.demo.utility.KafkaEvent;
 import com.example.demo.utility.PostStatus;
 
 @Service
 public class PostServiceImpl implements PostService {
 	@Autowired
-	private PostRepostiory postRepostiory;
+	private PostRepository postRepostiory;
 	@Autowired
 	private PostLikeRepository likeRepository;
 	@Autowired
-	private KafkaEventProducer eventProducer;
+	private KafkaPostEventProducer eventProducer;
 	@Autowired
 	private UserFeignClient client;
 
@@ -167,19 +167,19 @@ public class PostServiceImpl implements PostService {
 
 	@Override
 	@CachePut(value = "postLike", key = "#postId")
-	public Post addLike(Long postId, PostLikes likes) {
+	public Post addLike(Long postId, PostLike likes) {
 		Post post = postRepostiory.findById(postId)
 				.orElseThrow(() -> new PostNotFoundException("Post not found by this post ID : " + postId));
 		Long userId = likes.getUserId();
-		Optional<PostLikes> existingLikeOpt = likeRepository.findByPostAndUserId(post, userId);
+		Optional<PostLike> existingLikeOpt = likeRepository.findByPostAndUserId(post, userId);
 
 		int currentLikes = post.getLikeCount() == null ? 0 : post.getLikeCount();
 		if (existingLikeOpt.isPresent()) {
-			PostLikes existingLike = existingLikeOpt.get();
+			PostLike existingLike = existingLikeOpt.get();
 			likeRepository.delete(existingLike);
 			post.setLikeCount(Math.max(0, currentLikes - 1));
 		} else {
-			PostLikes postLike = new PostLikes();
+			PostLike postLike = new PostLike();
 			postLike.setPost(post);
 			postLike.setUserId(userId);
 			likeRepository.save(postLike);

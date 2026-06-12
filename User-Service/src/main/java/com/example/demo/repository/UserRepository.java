@@ -11,7 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import com.example.demo.entity.User;
 import com.example.demo.utility.UserStatus;
 
-public interface UsersRepository extends JpaRepository<User, Long> {
+public interface UserRepository extends JpaRepository<User, Long> {
 
 	@EntityGraph(attributePaths = { "postIds", "socialLinks" })
 	Optional<User> findByUsername(String username);

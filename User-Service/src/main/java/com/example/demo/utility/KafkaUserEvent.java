@@ -1,5 +1,5 @@
 package com.example.demo.utility;
 
-public enum KafkaEvent {
+public enum KafkaUserEvent {
 	REGISTERED, DELETED, UPDATED
 }

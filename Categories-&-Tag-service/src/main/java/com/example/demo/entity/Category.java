@@ -27,7 +27,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
-public class Categories implements Serializable {
+public class Category implements Serializable {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long categoryId;
@@ -38,9 +38,9 @@ public class Categories implements Serializable {
 	@ManyToOne()
 	@JoinColumn(name = "parent_id")
 	@JsonIgnore
-	private Categories parent;
+	private Category parent;
 
 	@OneToMany(mappedBy = "parent")
 	@JsonIgnore
-	private List<Categories> children = new ArrayList<>();
+	private List<Category> children = new ArrayList<>();
 }

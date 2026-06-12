@@ -7,10 +7,10 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.example.demo.Exception.TokenInvalidException;
-import com.example.demo.Exception.UserCredentialInvalidExcpetion;
-import com.example.demo.Exception.UserNotFoundException;
 import com.example.demo.entity.UserCredential;
+import com.example.demo.exception.TokenInvalidException;
+import com.example.demo.exception.UserCredentialInvalidException;
+import com.example.demo.exception.UserNotFoundException;
 import com.example.demo.repository.UserCredentialRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -52,7 +52,7 @@ public class AuthService {
 		UserCredential user = repository.findByEmail(email)
 				.orElseThrow(() -> new UserNotFoundException("User not found"));
 		if (!passwordEncoder.matches(password, user.getPassword())) {
-			throw new UserCredentialInvalidExcpetion("Invalid password");
+			throw new UserCredentialInvalidException("Invalid password");
 		}
 		String token = jwtUtil.generateToken(user.getUsername());
 

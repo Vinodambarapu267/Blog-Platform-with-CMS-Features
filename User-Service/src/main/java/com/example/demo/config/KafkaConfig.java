@@ -7,10 +7,10 @@ import org.springframework.kafka.config.TopicBuilder;
 @Configuration
 public class KafkaConfig {
     @Bean
-    public NewTopic studentEventsTopic() {
+    public NewTopic userRegisteredTopic() {
         return TopicBuilder.name("user-registered")
-                .partitions(3)               // number of partitions
-                .replicas(1)                 // replication factor
+                .partitions(3)               
+                .replicas(1)                 
                 .build();
     }
 }

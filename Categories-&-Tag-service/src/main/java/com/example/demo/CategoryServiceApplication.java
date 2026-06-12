@@ -8,10 +8,10 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 @SpringBootApplication
 @EnableDiscoveryClient
 @EnableCaching
-public class CategoriesService1Application {
+public class CategoryServiceApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(CategoriesService1Application.class, args);
+		SpringApplication.run(CategoryServiceApplication.class, args);
 	}
 
 }
