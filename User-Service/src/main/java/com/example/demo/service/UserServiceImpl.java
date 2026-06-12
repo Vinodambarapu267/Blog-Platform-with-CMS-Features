@@ -129,9 +129,7 @@ public class UserServiceImpl implements UserService {
 		dto.setStatus(user.getStatus());
 		dto.setRole(user.getRole());
 		dto.setSocialLinks(new HashMap<>(user.getSocialLinks()));
-		dto.setPostIds(user.getPostIds().stream()
-			    .distinct()
-			    .collect(Collectors.toList()));
+		dto.setPostIds(user.getPostIds().stream().distinct().collect(Collectors.toList()));
 		return dto;
 	}
 
@@ -202,6 +200,7 @@ public class UserServiceImpl implements UserService {
 		result.setPostIds(user.getPostIds());
 		result.setSocialLinks(user.getSocialLinks());
 		result.setUsername(user.getUsername());
+		result.setEmail(user.getEmail());
 		return result;
 	}
 
@@ -223,7 +222,7 @@ public class UserServiceImpl implements UserService {
 		user.getPostIds().add(event.getPostId());
 		User save = repository.save(user);
 		UserEvent userEvent = new UserEvent();
-	
+
 		userEvent.setUserId(save.getUserId());
 		userEvent.setUsername(save.getUsername());
 		userEvent.setDisplayName(save.getDisplayName());

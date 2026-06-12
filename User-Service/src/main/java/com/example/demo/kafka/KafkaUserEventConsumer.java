@@ -12,7 +12,7 @@ public class KafkaUserEventConsumer {
 	@Autowired
 	private UserService service;
 
-	@KafkaListener(topics = { "post-published", "post-updated", "post-deleted" }, groupId = "post-group")
+	@KafkaListener(topics = { "post-published", "post-updated", "post-deleted" }, groupId = "post-service-group")
 	public void handlePostEvent(PostEvent event) {
 		if (event.getEventType().equals(KafkaPostEvent.PUBLISHED.name())) {
 			service.addPost(event.getAuthorId(), event);
