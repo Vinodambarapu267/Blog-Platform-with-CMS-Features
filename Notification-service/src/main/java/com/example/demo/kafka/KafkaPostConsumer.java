@@ -20,7 +20,7 @@ public class KafkaPostConsumer {
 
 	private final Map<Long, String> userEmailCache = new ConcurrentHashMap<>();
 
-	@KafkaListener(topics = { "user-updated" }, groupId = "email-service-group")
+	@KafkaListener(topics = { "user-updated" }, groupId = "notification-user-group")
 	public void handleUserUpdatedEvent(UserEvent userEvent) {
 		if (userEvent == null || userEvent.getUserId() == null) {
 			return;
@@ -32,7 +32,7 @@ public class KafkaPostConsumer {
 		}
 	}
 
-	@KafkaListener(topics = { "post-published" }, groupId = "email-service-group")
+	@KafkaListener(topics = { "post-published" }, groupId = "notification-post-group")
 	public void handlePostEvent(PostEvent event) {
 		if (event == null || event.getEventType() == null || event.getAuthorId() == null) {
 			return;

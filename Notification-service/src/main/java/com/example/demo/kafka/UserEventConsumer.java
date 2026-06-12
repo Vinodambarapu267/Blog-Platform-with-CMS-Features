@@ -14,7 +14,7 @@ public class UserEventConsumer {
 		this.emailService = emailService;
 	}
 
-	@KafkaListener(topics = { "user-deleted", "user-updated", "user-registered" }, groupId = "user-service-groups")
+	@KafkaListener(topics = { "user-deleted", "user-updated", "user-registered" }, groupId = "notification-user-group")
 	public void handleUserEvents(UserEvent event) {
 		String email = event.getEmail();
 		if (event.getEventType().equals(KafkaEvent.REGISTERED.name())) {

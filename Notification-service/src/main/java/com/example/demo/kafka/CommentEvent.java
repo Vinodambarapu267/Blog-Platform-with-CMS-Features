@@ -8,10 +8,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CommentEvent {
+	private Long commentId;
 	private Long authorId;
-
 	private Long parentId;
-	
+	private Long postId;
 	private String content;
 	private String eventType;
 }
