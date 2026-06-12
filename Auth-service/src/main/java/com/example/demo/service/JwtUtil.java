@@ -8,46 +8,47 @@ import org.springframework.stereotype.Component;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 
 @Component
 public class JwtUtil {
 
-	private final String SECRET = "mysecretkeymysecretkeymysecretkeymysecretkey";
+    public static final String SECRET = "5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437";
 
-	private Key getSignKey() {
-		return Keys.hmacShaKeyFor(SECRET.getBytes());
-	}
+    private Key getSignKey() {
+        byte[] keyBytes = Decoders.BASE64.decode(SECRET);
+        return Keys.hmacShaKeyFor(keyBytes);
+    }
 
-	public String generateToken(String username) {
-		return Jwts.builder().setSubject(username).setIssuedAt(new Date())
-				.setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60))
-				.signWith(getSignKey(), SignatureAlgorithm.HS256).compact();
-	}
+    public String generateToken(String username) {
+        return Jwts.builder().setSubject(username).setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60))
+                .signWith(getSignKey(), SignatureAlgorithm.HS256).compact();
+    }
 
-	public String extractRole(String token) {
-		return extractAllClaims(token).get("role", String.class);
-	}
+    public String extractRole(String token) {
+        return extractAllClaims(token).get("role", String.class);
+    }
 
-	public String extractUsername(String token) {
-		return extractAllClaims(token).getSubject();
-	}
+    public String extractUsername(String token) {
+        return extractAllClaims(token).getSubject();
+    }
 
-	public Date extractExpiration(String token) {
-		return extractAllClaims(token).getExpiration();
-	}
+    public Date extractExpiration(String token) {
+        return extractAllClaims(token).getExpiration();
+    }
 
-	private Claims extractAllClaims(String token) {
+    private Claims extractAllClaims(String token) {
+        return Jwts.parserBuilder().setSigningKey(getSignKey()).build().parseClaimsJws(token).getBody();
+    }
 
-		return Jwts.parserBuilder().setSigningKey(getSignKey()).build().parseClaimsJws(token).getBody();
-	}
+    public boolean validateToken(String token) {
+        final String extractedUsername = extractUsername(token);
+        return !isTokenExpired(token);
+    }
 
-	public boolean validateToken(String token) {
-		final String extractedUsername = extractUsername(token);
-		return !isTokenExpired(token);
-	}
-
-	private boolean isTokenExpired(String token) {
-		return extractExpiration(token).before(new Date());
-	}
+    private boolean isTokenExpired(String token) {
+        return extractExpiration(token).before(new Date());
+    }
 }

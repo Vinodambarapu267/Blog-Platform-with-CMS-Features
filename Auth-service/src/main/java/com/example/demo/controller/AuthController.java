@@ -18,7 +18,7 @@ import com.example.demo.entity.UserCredential;
 import com.example.demo.service.AuthService;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/v1/auth")
 public class AuthController {
 	@Autowired
 	private AuthService service;
