@@ -1,8 +1,5 @@
 package com.example.demo.kafka;
 
-import com.example.demo.entity.Comment;
-
-import jakarta.persistence.Column;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -11,11 +8,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CommentEvent {
+	private Long commentId;
 	private Long authorId;
-	@Column(unique = true)
 	private Long parentId;
-	private Comment parent;
-	@Column(nullable = false, columnDefinition = "TEXT")
+	private Long postId;
 	private String content;
 	private String eventType;
 }

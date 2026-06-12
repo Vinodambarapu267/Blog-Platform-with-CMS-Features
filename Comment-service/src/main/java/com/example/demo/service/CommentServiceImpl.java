@@ -38,6 +38,8 @@ public class CommentServiceImpl implements CommentService {
 		newComment.setContent(comment.getContent());
 		Comment save = commentRepository.save(newComment);
 		CommentEvent event = new CommentEvent();
+		event.setCommentId(save.getCommentId());
+		event.setPostId(save.getPostId());
 		event.setAuthorId(save.getAuthorId());
 		event.setContent(save.getContent());
 		event.setParentId(save.getParentId());
@@ -61,6 +63,8 @@ public class CommentServiceImpl implements CommentService {
 
 		Comment save = commentRepository.save(updateComment);
 		CommentEvent event = new CommentEvent();
+		event.setCommentId(save.getCommentId());
+		event.setPostId(save.getPostId());
 		event.setAuthorId(save.getAuthorId());
 		event.setContent(save.getContent());
 		event.setParentId(save.getParentId());
