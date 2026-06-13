@@ -46,7 +46,7 @@ public class UserController {
 
 	@PutMapping("/updateuser/{userId}")
 	@RateLimiter(name = "myRateLimiter")
-    @PreAuthorize("hasAuthority('USER_UPDATE') or hasAuthority('PROFILE_UPDATE_OWN')")
+	@PreAuthorize("hasAuthority('USER_UPDATE') or hasAuthority('PROFILE_UPDATE_OWN')")
 	public ResponseEntity<?> updateUser(@PathVariable Long userId, @RequestBody UserDto userDto) {
 		UserResponseDto updateUser = userService.updateUser(userId, userDto);
 		if (updateUser == null) {
@@ -59,14 +59,10 @@ public class UserController {
 
 	@GetMapping("/findbyname/{username}")
 	@RateLimiter(name = "myRateLimiter")
-	public ResponseEntity<?> findByUsername(@PathVariable String username) {
+	public UserResponseDto findByUsername(@PathVariable String username) {
 		UserResponseDto user = userService.findByUserName(username);
-		if (user == null) {
-			return ResponseEntity.ok(new ResponseMessage<>(HttpURLConnection.HTTP_BAD_REQUEST,
-					ResponseStatus.FAILURE.name(), "User retriving failed"));
-		}
-		return ResponseEntity.ok(new ResponseMessage<>(HttpURLConnection.HTTP_CREATED, ResponseStatus.SUCCESS.name(),
-				"User found successfully", user));
+		System.err.println(user);
+		return user;
 	}
 
 	@DeleteMapping("/deleteuser/{username}")

@@ -131,6 +131,7 @@ public class UserServiceImpl implements UserService {
 		dto.setRole(user.getRole());
 		dto.setSocialLinks(new HashMap<>(user.getSocialLinks()));
 		dto.setPostIds(user.getPostIds().stream().distinct().collect(Collectors.toList()));
+		System.err.println(dto);
 		return dto;
 	}
 
