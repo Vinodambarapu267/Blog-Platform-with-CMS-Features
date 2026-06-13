@@ -2,11 +2,15 @@ package com.example.demo.service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,15 +40,56 @@ public class PostServiceImpl implements PostService {
 	@Autowired
 	private UserFeignClient client;
 
+	// ---------- security helpers ----------
+
+	private Set<String> authorities(Authentication authentication) {
+		if (authentication == null) {
+			return Set.of();
+		}
+		return authentication.getAuthorities()
+				.stream()
+				.map(a -> a.getAuthority())
+				.collect(Collectors.toSet());
+	}
+
+	private boolean has(Set<String> authorities, String permission) {
+		return authorities.contains(permission);
+	}
+
+	private void requirePermission(Set<String> authorities, String permission) {
+		if (!has(authorities, permission)) {
+			throw new AccessDeniedException("Missing permission: " + permission);
+		}
+	}
+
+	private Long resolveUserId(String username) {
+		UserDto user = client.findByUsername(username);
+		System.err.println(user);
+		if (user == null || user.getUserId() == null) {
+			throw new UserNotFoundException("User Not found by username: " + username);
+		}
+		return user.getUserId();
+	}
+
+	private boolean isOwner(Post post, Authentication authentication) {
+		if (authentication == null || authentication.getName() == null) {
+			return false;
+		}
+		Long callerUserId = resolveUserId(authentication.getName());
+		return post.getAuthorId() != null && post.getAuthorId().equals(callerUserId);
+	}
+
 	@Override
-	public Post createPost(Post post) {
+	public Post createPost(Post post, String username) {
 		Optional<Post> bySlug = postRepostiory.findBySlug(post.getSlug());
 		if (bySlug.isPresent()) {
 			throw new PostAlreadyExistException("Post already exist ");
 		}
-		UserDto byUserId = client.findByUserId(post.getAuthorId());
-		if (byUserId == null || byUserId.getUserId() == null) {
-			throw new UserNotFoundException("User Not found by this ID: " + post.getAuthorId());
+
+		Long callerUserId = resolveUserId(username);
+		
+		if (callerUserId == null || callerUserId == null) {
+			throw new UserNotFoundException("User Not found by this ID: " + callerUserId);
 		}
 
 		Post newPost = new Post();
@@ -52,7 +97,7 @@ public class PostServiceImpl implements PostService {
 		newPost.setSlug(post.getSlug());
 		newPost.setContent(post.getContent());
 		newPost.setExcerpt(post.getExcerpt());
-		newPost.setAuthorId(byUserId.getUserId());
+		newPost.setAuthorId(callerUserId);
 		newPost.setCategoryId(post.getCategoryId());
 		newPost.setViewCount(0);
 		newPost.setLikeCount(0);
@@ -78,19 +123,18 @@ public class PostServiceImpl implements PostService {
 	}
 
 	@Override
-	@Cacheable(value = "post", key = "#slug")
-	public Post findBySlug(String slug) {
-		Post post = postRepostiory.findBySlug(slug)
-				.orElseThrow(() -> new PostNotFoundException("post not found by this slug {}" + slug));
-
-		return post;
-	}
-
-	@Override
 	@CachePut(value = "updatePost", key = "#postId")
-	public Post updatePost(Long postId, PostDto postDto) {
+	public Post updatePost(Long postId, PostDto postDto, Authentication authentication) {
 		Post existedPost = postRepostiory.findById(postId)
 				.orElseThrow(() -> new PostNotFoundException("post not found by this post ID : " + postId));
+
+		Set<String> authorities = authorities(authentication);
+		boolean canUpdateOwn = has(authorities, "POST_UPDATE_OWN") && isOwner(existedPost, authentication);
+
+		if (!canUpdateOwn) {
+			throw new AccessDeniedException("You do not have permission to update this post");
+		}
+
 		existedPost.setTitle(postDto.getTitle());
 		existedPost.setSlug(postDto.getSlug());
 		existedPost.setContent(postDto.getContent());
@@ -123,9 +167,18 @@ public class PostServiceImpl implements PostService {
 	@Override
 	@Transactional
 	@CacheEvict(value = "deletePost", key = "#postId")
-	public String deletePost(Long postId) {
+	public String deletePost(Long postId, Authentication authentication) {
 		Post existedPost = postRepostiory.findById(postId)
 				.orElseThrow(() -> new PostNotFoundException("post not found by this post ID : " + postId));
+
+		Set<String> authorities = authorities(authentication);
+		boolean canDeleteAny = has(authorities, "POST_DELETE_ANY");
+		boolean canDeleteOwn = has(authorities, "POST_DELETE_OWN") && isOwner(existedPost, authentication);
+
+		if (!canDeleteAny && !canDeleteOwn) {
+			throw new AccessDeniedException("You do not have permission to delete this post");
+		}
+
 		likeRepository.deleteByPostId(postId);
 		postRepostiory.delete(existedPost);
 
@@ -151,10 +204,44 @@ public class PostServiceImpl implements PostService {
 
 	@Override
 	@CachePut(value = "updatePostStatus", key = "#postId+'-'+#status")
-	public String updatePostStatus(Long postId, String status) {
+	public String updatePostStatus(Long postId, String status, Authentication authentication) {
 		Post post = postRepostiory.findById(postId)
 				.orElseThrow(() -> new PostNotFoundException("post not found by this post ID : " + postId));
-		post.setStatus(updatStatus(status.toUpperCase()));
+
+		PostStatus newStatus = updatStatus(status.toUpperCase());
+		Set<String> authorities = authorities(authentication);
+
+		switch (newStatus) {
+		case PUBLISHED:
+			requirePermission(authorities, "POST_PUBLISH");
+			break;
+
+		case ARCHIVED:
+			requirePermission(authorities, "POST_UNPUBLISH");
+			break;
+
+		case REVIEW:
+			boolean canSubmitOwn = has(authorities, "POST_SUBMIT_DRAFT") && isOwner(post, authentication);
+			boolean canApprove = has(authorities, "POST_APPROVE");
+			if (!canSubmitOwn && !canApprove) {
+				throw new AccessDeniedException("Missing permission: POST_SUBMIT_DRAFT (own post) or POST_APPROVE");
+			}
+			break;
+
+		case DRAFT:
+			requirePermission(authorities, "POST_REJECT");
+			break;
+
+		case DELETED:
+			boolean canDeleteAny = has(authorities, "POST_DELETE_ANY");
+			boolean canDeleteOwn = has(authorities, "POST_DELETE_OWN") && isOwner(post, authentication);
+			if (!canDeleteAny && !canDeleteOwn) {
+				throw new AccessDeniedException("Missing permission: POST_DELETE_ANY or POST_DELETE_OWN");
+			}
+			break;
+		}
+
+		post.setStatus(newStatus);
 		Post updated = postRepostiory.save(post);
 		// sending the data to kafka producer
 		PostEvent event = new PostEvent();
@@ -167,11 +254,16 @@ public class PostServiceImpl implements PostService {
 
 	@Override
 	@CachePut(value = "postLike", key = "#postId")
-	public Post addLike(Long postId, PostLike likes) {
+	public Post addLike(Long postId, PostLike likes, Authentication authentication) {
 		Post post = postRepostiory.findById(postId)
 				.orElseThrow(() -> new PostNotFoundException("Post not found by this post ID : " + postId));
-		Long userId = likes.getUserId();
-		Optional<PostLike> existingLikeOpt = likeRepository.findByPostAndUserId(post, userId);
+
+		requirePermission(authorities(authentication), "POST_LIKE");
+
+		// don't trust userId from the request body — derive from the caller's identity
+		Long userId = resolveUserId(authentication.getName());
+
+		Optional<PostLike> existingLikeOpt = likeRepository.findByPostAndUserId(post, post.getAuthorId());
 
 		int currentLikes = post.getLikeCount() == null ? 0 : post.getLikeCount();
 		if (existingLikeOpt.isPresent()) {
@@ -186,7 +278,7 @@ public class PostServiceImpl implements PostService {
 			post.setLikeCount(currentLikes + 1);
 		}
 		Post updateLike = postRepostiory.save(post);
-		// sending the data to kafka producer
+		// sending the data to kafka producerhndha
 		PostEvent event = new PostEvent();
 		event.setPostId(updateLike.getPostId());
 		event.setLikeCount(updateLike.getLikeCount());
@@ -226,6 +318,7 @@ public class PostServiceImpl implements PostService {
 	public PostDto findById(Long postId) {
 		Post post = postRepostiory.findById(postId)
 				.orElseThrow(() -> new PostNotFoundException("post not found by this post ID : " + postId));
+
 		PostDto dto = new PostDto();
 		dto.setPostId(post.getPostId());
 		dto.setTitle(post.getTitle());

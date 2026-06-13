@@ -4,6 +4,8 @@ import java.net.HttpURLConnection;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,8 +32,9 @@ public class PostController {
 	private PostService postService;
 
 	@PostMapping("/createpost")
-	public ResponseEntity<?> addPost(@RequestBody Post post) {
-		Post addPost = postService.createPost(post);
+	@PreAuthorize("hasAuthority('POST_CREATE')")
+	public ResponseEntity<?> addPost(@RequestBody Post post, Authentication authentication) {
+		Post addPost = postService.createPost(post, authentication.getName());
 		if (addPost == null) {
 			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_BAD_REQUEST,
 					ResponseStatus.FAILURE.name(), "Creating of Post Failed"));
@@ -40,10 +43,12 @@ public class PostController {
 				"Post created succcessfully", addPost));
 	}
 
-	@PutMapping("/updatepost/{id}")
 	@RateLimiter(name = "myRateLimiter")
-	public ResponseEntity<?> updatPost(@PathVariable("id") Long postId, @RequestBody PostDto postDto) {
-		Post updatePost = postService.updatePost(postId, postDto);
+	@PreAuthorize("hasAuthority('POST_UPDATE_OWN')")
+	@PutMapping("/updatpost/{id}")
+	public ResponseEntity<?> updatPost(@PathVariable("id") Long postId, @RequestBody PostDto postDto,
+			Authentication authentication) {
+		Post updatePost = postService.updatePost(postId, postDto, authentication);
 		if (updatePost == null) {
 			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_BAD_REQUEST,
 					ResponseStatus.FAILURE.name(), "Updating of Post Failed"));
@@ -53,22 +58,25 @@ public class PostController {
 	}
 
 	@DeleteMapping("/{id}")
-	public String deletePost(@PathVariable("id") Long postId) {
-		String deletePost = postService.deletePost(postId);
-		return deletePost;
+	@PreAuthorize("hasAuthority('POST_DELETE_ANY') or hasAuthority('POST_DELETE_OWN')")
+	public String deletePost(@PathVariable("id") Long postId, Authentication authentication) {
+		return postService.deletePost(postId, authentication);
 	}
 
 	@PutMapping("/updatestatus/{id}")
 	@RateLimiter(name = "myRateLimiter")
-	public String updateStatus(@PathVariable("id") Long postid, @RequestParam String status) {
-		String updatePostStatus = postService.updatePostStatus(postid, status);
-		return updatePostStatus;
+	@PreAuthorize("isAuthenticated()") // fine-grained check happens in service, see Step 6
+	public String updateStatus(@PathVariable("id") Long postId, @RequestParam String status,
+			Authentication authentication) {
+		return postService.updatePostStatus(postId, status, authentication);
 	}
 
 	@PostMapping("/{id}/like")
 	@RateLimiter(name = "myRateLimiter")
-	public ResponseEntity<?> addLike(@PathVariable("id") Long postId, @RequestBody PostLike likes) {
-		Post like = postService.addLike(postId, likes);
+	@PreAuthorize("hasAuthority('POST_LIKE')")
+	public ResponseEntity<?> addLike(@PathVariable("id") Long postId, @RequestBody PostLike likes,
+			Authentication authentication) {
+		Post like = postService.addLike(postId, likes, authentication);
 		if (like == null) {
 			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_BAD_REQUEST,
 					ResponseStatus.FAILURE.name(), "liking of Post Failed"));
@@ -85,6 +93,7 @@ public class PostController {
 
 	@GetMapping("/{id}/likes")
 	@RateLimiter(name = "myRateLimiter")
+	@PreAuthorize("hasAuthority('POST_LIKES')")
 	public Integer getTotalLikes(@PathVariable("id") Long postId) {
 		int totalLikes = postService.totalLikes(postId);
 		return totalLikes;

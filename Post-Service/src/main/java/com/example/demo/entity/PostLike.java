@@ -19,7 +19,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "post_likes")
+@Table(name = "post_like")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
