@@ -31,11 +31,9 @@ public class AuthService {
 		return "User added successfully";
 	}
 
-
-	public String generateToken(String username) {
-		return jwtUtil.generateToken(username);
+	public String generateToken(String username, String role) {
+		return jwtUtil.generateToken(username, role);
 	}
-
 	@PreAuthorize("permitAll()")
 	public void validateToken(String token) {
 		if (!jwtUtil.validateToken(token)) {
@@ -50,7 +48,7 @@ public class AuthService {
 		if (!passwordEncoder.matches(password, user.getPassword())) {
 			throw new UserCredentialInvalidException("Invalid password");
 		}
-		String token = jwtUtil.generateToken(user.getUsername());
+		String token = jwtUtil.generateToken(user.getUsername(),user.getRole());
 
 		return token;
 	}
