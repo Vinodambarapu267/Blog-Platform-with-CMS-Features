@@ -30,6 +30,8 @@ public enum Permission {
     POST_UPDATE_ANY,
     POST_DELETE_OWN,
     POST_DELETE_ANY,
+    POST_LIKE,
+    POST_LIKES,
     POST_SUBMIT_DRAFT,
     POST_APPROVE,
     POST_REJECT,
@@ -44,8 +46,7 @@ public enum Permission {
     COMMENT_DELETE_ANY,
     COMMENT_MODERATE,
 
-    POST_LIKE,
-
+   
     CONTENT_SEARCH,
 
     PROFILE_UPDATE_OWN,

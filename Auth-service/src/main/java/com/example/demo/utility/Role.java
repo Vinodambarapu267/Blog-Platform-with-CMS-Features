@@ -32,6 +32,8 @@ public enum Role {
             Permission.POST_DELETE_ANY,
             Permission.POST_APPROVE,
             Permission.POST_REJECT,
+            Permission.POST_LIKE,
+            Permission. POST_LIKES,
             Permission.POST_PUBLISH,
             Permission.POST_UNPUBLISH,
 
