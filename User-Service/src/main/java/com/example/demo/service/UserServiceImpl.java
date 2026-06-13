@@ -39,6 +39,7 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	@Modifying
+
 	public UserResponseDto createUser(User user) {
 		Optional<User> existingUser = repository.findByUsername(user.getUsername());
 		if (existingUser.isPresent()) {

@@ -4,8 +4,8 @@ import java.net.HttpURLConnection;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,6 +33,7 @@ public class UserController {
 
 	@PostMapping("/createuser")
 	@RateLimiter(name = "myRateLimiter")
+	@PreAuthorize("hasAuthority('USER_CREATE')")
 	public ResponseEntity<?> createUser(@RequestBody User user) {
 		UserResponseDto save = userService.createUser(user);
 		if (user == null) {
@@ -45,6 +46,7 @@ public class UserController {
 
 	@PutMapping("/updateuser/{userId}")
 	@RateLimiter(name = "myRateLimiter")
+    @PreAuthorize("hasAuthority('USER_UPDATE') or hasAuthority('PROFILE_UPDATE_OWN')")
 	public ResponseEntity<?> updateUser(@PathVariable Long userId, @RequestBody UserDto userDto) {
 		UserResponseDto updateUser = userService.updateUser(userId, userDto);
 		if (updateUser == null) {
@@ -68,6 +70,7 @@ public class UserController {
 	}
 
 	@DeleteMapping("/deleteuser/{username}")
+	@PreAuthorize("hasAuthority('USER_DELETE')")
 	public String deleteUser(@PathVariable String username) {
 		userService.deleteUser(username);
 		return "user deleted successfully";
@@ -75,6 +78,7 @@ public class UserController {
 
 	@GetMapping("/{userId}")
 	@RateLimiter(name = "myRateLimiter")
+	@PreAuthorize("hasAuthority('USER_READ')")
 	public UserDto findByUserId(@PathVariable Long userId) {
 		return userService.findById(userId);
 
@@ -82,6 +86,7 @@ public class UserController {
 
 	@PutMapping("/updateStatus")
 	@RateLimiter(name = "myRateLimiter")
+	@PreAuthorize("hasAuthority('USER_UPDATE')")
 	public ResponseEntity<?> updateStatus(@RequestParam String username, @RequestParam String status) {
 		UserResponseDto updateStatus = userService.updateStatus(username, status);
 		return ResponseEntity.ok(updateStatus);
