@@ -11,7 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import com.example.demo.entity.Tag;
 
 public interface TagsRepository extends JpaRepository<Tag, Long> {
-	@Query("SELECT t FROM Tags t ORDER BY t.postCount DESC")
+	@Query("SELECT t FROM Tag t ORDER BY t.postCount DESC")
 	Page<Tag> findPopularTags(Pageable pageable);
 	List<Tag> findByTagNameIn(Collection<String> names);
 }

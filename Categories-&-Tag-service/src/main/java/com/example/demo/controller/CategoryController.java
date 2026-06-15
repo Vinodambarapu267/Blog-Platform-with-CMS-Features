@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,6 +32,7 @@ public class CategoryController {
 	private CategoryService categoryService;
 
 	@PostMapping("/createcategory")
+	@PreAuthorize("hasAuthority('CATEGORY_CREATE')")
 	public ResponseEntity<?> createCategory(@RequestBody CategoryDto categories) {
 		Category category = categoryService.createCategory(categories);
 		if (category == null) {
@@ -42,6 +44,7 @@ public class CategoryController {
 	}
 
 	@PutMapping("/updateCategory/{categoryId}")
+	@PreAuthorize("hasAuthority('CATEGORY_UPDATE')")
 	public ResponseEntity<?> updateById(@PathVariable("categoryId") Long id, @RequestBody CategoryDto categoryDto) {
 		Category updateCategories = categoryService.updateCategories(id, categoryDto);
 		if (updateCategories == null) {
@@ -54,8 +57,8 @@ public class CategoryController {
 
 	@GetMapping
 	@RateLimiter(name = "myRateLimiter", fallbackMethod = "rateLimitFallback")
-	public ResponseEntity<?> getAllCategories(@RequestParam int page, @RequestParam String soryBy) {
-		Page<Category> allCategories = categoryService.getAllCategories(page, soryBy);
+	public ResponseEntity<?> getAllCategories(@RequestParam int page, @RequestParam String sortBy) {
+		Page<Category> allCategories = categoryService.getAllCategories(page, sortBy);
 		if (allCategories == null) {
 			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_NOT_FOUND,
 					ResponseStatus.FAILURE.name(), "Category Retriving failed"));
@@ -64,6 +67,7 @@ public class CategoryController {
 	}
 
 	@DeleteMapping("/deletebyid/{id}")
+	@PreAuthorize("hasAuthority('CATEGORY_DELETE')")
 	public ResponseEntity<?> deleteByid(@PathVariable Long id) {
 		categoryService.deleteCatory(id);
 		return ResponseEntity.ok("deleted successfully : " + id);
@@ -74,9 +78,8 @@ public class CategoryController {
 	public String validateCategory(@PathVariable("category-id") Long id) {
 		return categoryService.isExistCatgory(id);
 	}
+
 	public ResponseEntity<String> rateLimitFallback(Exception ex) {
-        return ResponseEntity
-                .status(HttpStatus.TOO_MANY_REQUESTS)
-                .body("Too many requests - please try again later.");
-    }
+		return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body("Too many requests - please try again later.");
+	}
 }

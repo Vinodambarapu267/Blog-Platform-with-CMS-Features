@@ -24,14 +24,12 @@ public class CategoryServiceImpl implements CategoryService {
 
 	@Autowired
 	private CategoryRepository categoryRepository;
-
+	
 	@Override
-
 	public Category createCategory(CategoryDto dto) {
 		if (categoryRepository.findByCategorySlug(dto.getCategorySlug()).isPresent()) {
 			throw new SlugAlreadyExistException("Slug already exists");
 		}
-
 		Category category = new Category();
 		category.setCategoryName(dto.getCategoryName());
 		category.setCategorySlug(dto.getCategorySlug());

@@ -9,6 +9,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -45,6 +46,8 @@ public class TagController {
 	}
 
 	@DeleteMapping("/delete/{tag-id}")
+	@RateLimiter(name = "myRateLimiter", fallbackMethod = "tagsFallback")
+	@PreAuthorize("hasAuthority('TAG_DELETE')")
 	public String deleteTag(@PathVariable("tag-id") Long id) {
 		tagService.deleteTag(id);
 		return "deleted successfully";
