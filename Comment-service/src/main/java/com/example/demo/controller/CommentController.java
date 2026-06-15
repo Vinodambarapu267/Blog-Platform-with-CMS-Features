@@ -5,6 +5,8 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -31,8 +33,9 @@ public class CommentController {
 	private CommentService commentService;
 
 	@PostMapping("/posts/{postId}/comments")
-	public ResponseEntity<?> addComment(@PathVariable Long postId, @RequestBody CommentDto commentDto) {
-		Comment comment = commentService.addComment(postId, commentDto);
+	public ResponseEntity<?> addComment(@PathVariable Long postId, @RequestBody CommentDto commentDto,
+			Authentication authentication) {
+		Comment comment = commentService.addComment(postId, commentDto, authentication.getName());
 		if (comment == null) {
 			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_NOT_ACCEPTABLE,
 					ResponseStatus.FAILURE.name(), "commenting failed"));
@@ -41,22 +44,12 @@ public class CommentController {
 				"commented successfully", comment));
 	}
 
-	@GetMapping("/posts/{postId}/comments")
+	@PutMapping("/posts/{postId}/comments")
 	@RateLimiter(name = "myRateLimiter")
-	public ResponseEntity<?> readComments(@PathVariable Long postId) {
-		List<Comment> comments = commentService.readComments(postId);
-		if (comments.isEmpty()) {
-			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_NOT_ACCEPTABLE,
-					ResponseStatus.FAILURE.name(), "No Comments"));
-		}
-		return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_CREATED, ResponseStatus.SUCCESS.name(),
-				"All comments retrived successfully", comments));
-	}
-
-	@PutMapping("/{id}")
-	@RateLimiter(name = "myRateLimiter")
-	public ResponseEntity<?> updateComment(@PathVariable Long id, @RequestBody CommentDto commentDto) {
-		Comment updateComment = commentService.updateComment(id, commentDto);
+	@PreAuthorize("hasAuthority('COMMENT_CREATE')")
+	public ResponseEntity<?> updateComment(@PathVariable Long id, @RequestBody CommentDto commentDto,
+			Authentication authentication) {
+		Comment updateComment = commentService.updateComment(id, commentDto, authentication);
 		if (updateComment == null) {
 			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_NOT_ACCEPTABLE,
 					ResponseStatus.FAILURE.name(), "comment updating failed"));
@@ -65,17 +58,32 @@ public class CommentController {
 				"comment updated successfully", updateComment));
 	}
 
+	
 	@DeleteMapping("/{id}")
 	@RateLimiter(name = "myRateLimiter")
-	public String deleteComment(@PathVariable Long id) {
-		String deleteComment = commentService.deleteComment(id);
-		return deleteComment;
+	@PreAuthorize("hasAuthority('COMMENT_DELETE_ANY') or hasAuthority('COMMENT_CREATE')")
+	public String deleteComment(@PathVariable Long id, Authentication authentication) {
+		return commentService.deleteComment(id, authentication);
 	}
+	@GetMapping("/posts/{postId}/comments")
+	public ResponseEntity<?> readComment(@PathVariable Long postId){
+		List<Comment> comments = commentService.readComments(postId);
+		if (comments == null) {
+			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_NOT_ACCEPTABLE,
+					ResponseStatus.FAILURE.name(), "comments retrived failed.. "));
+		}
+		return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_CREATED, ResponseStatus.SUCCESS.name(),
+				"All comments Retrived successfully", comments));
+	}
+	
 
-	@PatchMapping("/{id}/status")
-	@RateLimiter(name = "myRateLimiter")
-	public ResponseEntity<?> updateStatus(@PathVariable Long id, @RequestParam String status) {
-		Comment updateStatus = commentService.updateStatus(id, status);
-		return ResponseEntity.ok(updateStatus);
-	}
+	 @PatchMapping("/{id}/status")
+	    @RateLimiter(name = "myRateLimiter")
+	    @PreAuthorize("hasAuthority('COMMENT_MODERATE')")
+	    public ResponseEntity<?> updateStatus(@PathVariable Long id,
+	                                           @RequestParam String status,
+	                                           Authentication authentication) {
+	        Comment updateStatus = commentService.updateStatus(id, status, authentication);
+	        return ResponseEntity.ok(updateStatus);
+	    }
 }

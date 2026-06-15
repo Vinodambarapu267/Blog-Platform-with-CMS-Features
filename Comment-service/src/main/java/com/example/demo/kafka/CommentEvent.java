@@ -1,5 +1,7 @@
 package com.example.demo.kafka;
 
+import com.example.demo.utility.CommentStatus;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,4 +16,5 @@ public class CommentEvent {
 	private Long postId;
 	private String content;
 	private String eventType;
+	private CommentStatus status;
 }
