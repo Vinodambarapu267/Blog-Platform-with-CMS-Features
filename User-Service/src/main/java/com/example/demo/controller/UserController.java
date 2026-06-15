@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -44,11 +45,11 @@ public class UserController {
 				"User created successfully", save));
 	}
 
-	@PutMapping("/updateuser/{userId}")
+	@PutMapping("/updateuser/me")
 	@RateLimiter(name = "myRateLimiter")
-	@PreAuthorize("hasAuthority('USER_UPDATE') or hasAuthority('PROFILE_UPDATE_OWN')")
-	public ResponseEntity<?> updateUser(@PathVariable Long userId, @RequestBody UserDto userDto) {
-		UserResponseDto updateUser = userService.updateUser(userId, userDto);
+	public ResponseEntity<?> updateUser( @RequestBody UserDto userDto,
+			Authentication authentication) {
+		UserResponseDto updateUser = userService.updateUser(userDto, authentication);
 		if (updateUser == null) {
 			return ResponseEntity.ok(new ResponseMessage<>(HttpURLConnection.HTTP_BAD_REQUEST,
 					ResponseStatus.FAILURE.name(), "User updating failed"));
@@ -61,7 +62,6 @@ public class UserController {
 	@RateLimiter(name = "myRateLimiter")
 	public UserResponseDto findByUsername(@PathVariable String username) {
 		UserResponseDto user = userService.findByUserName(username);
-		System.err.println(user);
 		return user;
 	}
 

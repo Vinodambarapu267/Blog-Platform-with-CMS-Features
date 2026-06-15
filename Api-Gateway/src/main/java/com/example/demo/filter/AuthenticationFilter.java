@@ -33,7 +33,8 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
                 if (authHeader != null && authHeader.startsWith("Bearer ")) {
                     authHeader = authHeader.substring(7);
                 }
-                try { 
+                try {
+//      
                     jwtUtil.validateToken(authHeader);
 
                 } catch (Exception e) {

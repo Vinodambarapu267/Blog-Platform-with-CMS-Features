@@ -7,12 +7,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import com.example.demo.dto.UserDto;
@@ -37,10 +40,45 @@ public class UserServiceImpl implements UserService {
 	@Autowired
 	private KafkaUserProducer kafkaUserProducer;
 
+	private Set<String> authorities(Authentication authentication) {
+		if (authentication == null) {
+			return Set.of();
+		}
+		return authentication.getAuthorities().stream().map(a -> a.getAuthority()).collect(Collectors.toSet());
+	}
+
+	private boolean has(Set<String> authorities, String permission) {
+		return authorities.contains(permission);
+	}
+
+	private void requirePermission(Set<String> authorities, String permission) {
+		if (!has(authorities, permission)) {
+			throw new AccessDeniedException("Missing permission: " + permission);
+		}
+	}
+
+	private Long resolveUserId(String username) {
+		UserResponseDto user = findByUserName(username);
+
+		if (user == null || user.getUserId() == null) {
+			throw new UserNotFoundException("User Not found by username: " + username);
+		}
+		return user.getUserId();
+	}
+
+	private boolean isOwner(User user, Authentication authentication) {
+		if (authentication == null || authentication.getName() == null) {
+			return false;
+		}
+		Long callerUserId = resolveUserId(authentication.getName());
+		return user.getUserId() != null && user.getUserId().equals(callerUserId);
+	}
+
 	@Override
 	@Modifying
 
 	public UserResponseDto createUser(User user) {
+
 		Optional<User> existingUser = repository.findByUsername(user.getUsername());
 		if (existingUser.isPresent()) {
 			throw new UserAlreadyExistException("User already Existed");
@@ -61,30 +99,30 @@ public class UserServiceImpl implements UserService {
 		}
 		newUser.setEmail(user.getEmail());
 		newUser.setSocialLinks(links);
-		User savedUser  = repository.save(newUser);
+		User savedUser = repository.save(newUser);
 		UserEvent event = new UserEvent();
-		event.setUserId(savedUser .getUserId());
-		event.setBio(savedUser .getBio());
-		event.setUsername(savedUser .getUsername());
-		event.setDisplayName(savedUser .getDisplayName());
-		event.setSocialLinks(savedUser .getSocialLinks());
+		event.setUserId(savedUser.getUserId());
+		event.setBio(savedUser.getBio());
+		event.setUsername(savedUser.getUsername());
+		event.setDisplayName(savedUser.getDisplayName());
+		event.setSocialLinks(savedUser.getSocialLinks());
 		event.setEventType("user.registered");
 		event.setCreatedAt(LocalDateTime.now());
-		event.setUpdatedAt(savedUser .getUpdatedAt());
-		event.setStatus(savedUser .getStatus());
-		event.setRole(savedUser .getRole());
-		event.setEmail(savedUser .getEmail());
+		event.setUpdatedAt(savedUser.getUpdatedAt());
+		event.setStatus(savedUser.getStatus());
+		event.setRole(savedUser.getRole());
+		event.setEmail(savedUser.getEmail());
 		event.setEventType(KafkaUserEvent.REGISTERED.name());
 		kafkaUserProducer.publishUserRegisteredEvent(event);
-		return new UserResponseDto(savedUser .getUserId(), savedUser .getUsername(), savedUser .getDisplayName(), savedUser .getBio(),
-				savedUser .getSocialLinks(), savedUser .getStatus(), savedUser .getEmail(), savedUser .getCreatedAt(), savedUser .getRole(),
-				savedUser .getPostIds());
+		return new UserResponseDto(savedUser.getUserId(), savedUser.getUsername(), savedUser.getDisplayName(),
+				savedUser.getBio(), savedUser.getSocialLinks(), savedUser.getStatus(), savedUser.getEmail(),
+				savedUser.getCreatedAt(), savedUser.getRole(), savedUser.getPostIds());
 	}
 
-	@CachePut(value = "updateUser", key = "#userId")
 	@Override
 	@Modifying
-	public UserResponseDto updateUser(Long userId, UserDto userDto) {
+	public UserResponseDto updateUser(UserDto userDto, Authentication authentication) {
+		Long userId = resolveUserId(authentication.getName());
 		User existedUser = repository.findById(userId)
 				.orElseThrow(() -> new UserNotFoundException("User not found :" + userId));
 
@@ -113,9 +151,9 @@ public class UserServiceImpl implements UserService {
 		event.setSocialLinks(updatedUser.getSocialLinks());
 		event.setEventType(KafkaUserEvent.UPDATED.name());
 		kafkaUserProducer.publishUserUpdatedEvent(event);
-		return new UserResponseDto(updatedUser.getUserId(), updatedUser.getUsername(), updatedUser.getDisplayName(), updatedUser.getBio(),
-				updatedUser.getSocialLinks(), updatedUser.getStatus(), updatedUser.getEmail(), updatedUser.getCreatedAt(), updatedUser.getRole(),
-				updatedUser.getPostIds());
+		return new UserResponseDto(updatedUser.getUserId(), updatedUser.getUsername(), updatedUser.getDisplayName(),
+				updatedUser.getBio(), updatedUser.getSocialLinks(), updatedUser.getStatus(), updatedUser.getEmail(),
+				updatedUser.getCreatedAt(), updatedUser.getRole(), updatedUser.getPostIds());
 	}
 
 	@Override
@@ -131,7 +169,6 @@ public class UserServiceImpl implements UserService {
 		dto.setRole(user.getRole());
 		dto.setSocialLinks(new HashMap<>(user.getSocialLinks()));
 		dto.setPostIds(user.getPostIds().stream().distinct().collect(Collectors.toList()));
-		System.err.println(dto);
 		return dto;
 	}
 
@@ -232,7 +269,6 @@ public class UserServiceImpl implements UserService {
 		userEvent.setEmail(savedUser.getEmail());
 		userEvent.setSocialLinks(savedUser.getSocialLinks());
 		userEvent.setEventType(KafkaUserEvent.UPDATED.name());
-		System.err.println(userEvent.getEmail());
 		kafkaUserProducer.publishUserUpdatedEvent(userEvent);
 
 	}

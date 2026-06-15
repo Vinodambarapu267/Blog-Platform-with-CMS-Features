@@ -2,19 +2,19 @@ package com.example.demo.service;
 
 import java.util.List;
 
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import com.example.demo.dto.UserDto;
 import com.example.demo.dto.UserResponseDto;
 import com.example.demo.entity.User;
 import com.example.demo.kafka.PostEvent;
-import com.example.demo.kafka.KafkaUserEventConsumer;
 
 @Service
 public interface UserService {
 	public UserResponseDto createUser(User user);
 
-	public UserResponseDto updateUser(Long userId, UserDto userDto);
+	public UserResponseDto updateUser(UserDto userDto,Authentication authentication);
 
 	public UserResponseDto findByUserName(String username);
 

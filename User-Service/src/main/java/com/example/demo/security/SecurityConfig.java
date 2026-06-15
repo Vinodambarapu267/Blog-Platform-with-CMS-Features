@@ -31,6 +31,7 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/**","/api/v1/users").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/users/findbyname/{username}").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/users/*/posts").permitAll()
+                .requestMatchers("/updateuser/me").authenticated()
                 .anyRequest().authenticated()
             )
             .exceptionHandling(ex -> ex
