@@ -45,11 +45,20 @@ public class GlobalExceptionHandler {
 				e.getMessage(), request.getDescription(false));
 		return ResponseEntity.ok(errorMessage);
 	}
+
 	@ExceptionHandler(UserNotFoundException.class)
 	public ResponseEntity<?> handleUserNotException(UserNotFoundException exception, WebRequest request) {
 		ErrorMessage errorMessage = new ErrorMessage(LocalDateTime.now(), HttpURLConnection.HTTP_BAD_REQUEST,
 				exception.getMessage(), request.getDescription(false));
 		return ResponseEntity.ok(errorMessage);
+	}
+
+	@ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+	public ResponseEntity<?> handleAccessDenied(org.springframework.security.access.AccessDeniedException ex,
+			WebRequest request) {
+		ErrorMessage errorMessage = new ErrorMessage(LocalDateTime.now(), HttpStatus.FORBIDDEN.value(), ex.getMessage(),
+				request.getDescription(false));
+		return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorMessage);
 	}
 
 	@ExceptionHandler(Exception.class)

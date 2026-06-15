@@ -35,6 +35,7 @@ public class TagController {
 	private TagService tagService;
 
 	@PostMapping("/autocreate")
+	@PreAuthorize("isAuthenticated()")
 	public ResponseEntity<?> createTags(@RequestBody TagResolveRequest request) {
 		List<TagResponse> tags = tagService.resolveTags(request.names());
 		if (tags.isEmpty()) {
@@ -75,6 +76,7 @@ public class TagController {
 		Page<Tag> popularTags = tagService.findAllPopularTags(pageable);
 		return ResponseEntity.ok(popularTags);
 	}
+
 	public ResponseEntity<?> tagsFallback(Throwable t) {
 		return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body("Too many requests - please try again later.");
 	}
