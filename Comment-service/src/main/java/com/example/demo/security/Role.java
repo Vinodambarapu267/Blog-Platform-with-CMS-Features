@@ -41,6 +41,7 @@ public enum Role {
             Permission.COMMENT_CREATE,
             Permission.COMMENT_UPDATE_ANY,
             Permission.COMMENT_DELETE_ANY,
+            Permission.COMMENT_DELETE_OWN,
             Permission.COMMENT_MODERATE,
 
             Permission.CONTENT_SEARCH,
@@ -59,6 +60,8 @@ public enum Role {
             Permission.POST_LIKE,
             Permission.COMMENT_READ,
             Permission.COMMENT_MODERATE,
+            Permission.COMMENT_DELETE_OWN,
+            Permission.COMMENT_DELETE_ANY,
             Permission.CATEGORY_READ,
             Permission.CATEGORY_CREATE,
             Permission.CATEGORY_UPDATE,
@@ -78,6 +81,7 @@ public enum Role {
             Permission.POST_SUBMIT_DRAFT,
             Permission.POST_LIKE,
             Permission.COMMENT_READ,
+            Permission.COMMENT_DELETE_OWN,
             Permission.CONTENT_SEARCH
     )),
 
@@ -85,6 +89,7 @@ public enum Role {
             Permission.POST_READ,
             Permission.COMMENT_READ,
             Permission.COMMENT_CREATE,
+            Permission.COMMENT_DELETE_OWN,
             Permission.POST_LIKE,
             Permission.PROFILE_UPDATE_OWN,
             Permission.CONTENT_SEARCH

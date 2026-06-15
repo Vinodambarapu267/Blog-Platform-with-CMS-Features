@@ -61,7 +61,7 @@ public class CommentController {
 	
 	@DeleteMapping("/{id}")
 	@RateLimiter(name = "myRateLimiter")
-	@PreAuthorize("hasAuthority('COMMENT_DELETE_ANY') or hasAuthority('COMMENT_CREATE')")
+	@PreAuthorize("hasAuthority('COMMENT_DELETE_ANY') or hasAuthority('COMMENT_DELETE_OWN')")
 	public String deleteComment(@PathVariable Long id, Authentication authentication) {
 		return commentService.deleteComment(id, authentication);
 	}
