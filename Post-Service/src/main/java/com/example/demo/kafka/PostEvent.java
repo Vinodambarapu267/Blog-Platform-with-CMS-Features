@@ -21,12 +21,12 @@ public class PostEvent {
 	private String content;
 	private String excerpt;
 	@Enumerated(EnumType.STRING)
-	private PostStatus status = PostStatus.PUBLISHED;
+	private PostStatus status;
 	private Long authorId;
 	private Long categoryId;
 	private Integer viewCount;
 	private Integer likeCount;
-	private LocalDateTime pulishedAt;
+	private LocalDateTime publishedAt;
 	private LocalDateTime createdAt;
 	private LocalDateTime updatedAt;
 	private String eventType;

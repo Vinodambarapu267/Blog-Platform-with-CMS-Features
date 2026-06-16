@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -46,10 +47,7 @@ public class PostServiceImpl implements PostService {
 		if (authentication == null) {
 			return Set.of();
 		}
-		return authentication.getAuthorities()
-				.stream()
-				.map(a -> a.getAuthority())
-				.collect(Collectors.toSet());
+		return authentication.getAuthorities().stream().map(a -> a.getAuthority()).collect(Collectors.toSet());
 	}
 
 	private boolean has(Set<String> authorities, String permission) {
@@ -64,7 +62,6 @@ public class PostServiceImpl implements PostService {
 
 	private Long resolveUserId(String username) {
 		UserDto user = client.findByUsername(username);
-		System.err.println(user);
 		if (user == null || user.getUserId() == null) {
 			throw new UserNotFoundException("User Not found by username: " + username);
 		}
@@ -87,7 +84,7 @@ public class PostServiceImpl implements PostService {
 		}
 
 		Long callerUserId = resolveUserId(username);
-		
+
 		if (callerUserId == null || callerUserId == null) {
 			throw new UserNotFoundException("User Not found by this ID: " + callerUserId);
 		}
@@ -114,7 +111,7 @@ public class PostServiceImpl implements PostService {
 		event.setCategoryId(save.getCategoryId());
 		event.setViewCount(save.getViewCount());
 		event.setLikeCount(save.getLikeCount());
-		event.setPulishedAt(save.getPublishedAt());
+		event.setPublishedAt(save.getPublishedAt());
 		event.setCreatedAt(save.getCreatedAt());
 		event.setUpdatedAt(save.getUpdatedAt());
 		event.setEventType(KafkaEvent.PUBLISHED.name());
@@ -130,7 +127,7 @@ public class PostServiceImpl implements PostService {
 
 		Set<String> authorities = authorities(authentication);
 		boolean canUpdateOwn = has(authorities, "POST_UPDATE_OWN") && isOwner(existedPost, authentication);
-
+		Long callerUserId = resolveUserId(authentication.getName());
 		if (!canUpdateOwn) {
 			throw new AccessDeniedException("You do not have permission to update this post");
 		}
@@ -139,7 +136,7 @@ public class PostServiceImpl implements PostService {
 		existedPost.setSlug(postDto.getSlug());
 		existedPost.setContent(postDto.getContent());
 		existedPost.setExcerpt(postDto.getExcerpt());
-		existedPost.setAuthorId(postDto.getAuthorId());
+		existedPost.setAuthorId(callerUserId);
 		existedPost.setCategoryId(postDto.getCategoryId());
 		existedPost.setStatus(updatStatus(postDto.getStatus().name().toUpperCase()));
 
@@ -156,7 +153,7 @@ public class PostServiceImpl implements PostService {
 		event.setCategoryId(updatePost.getCategoryId());
 		event.setViewCount(updatePost.getViewCount());
 		event.setLikeCount(updatePost.getLikeCount());
-		event.setPulishedAt(updatePost.getPublishedAt());
+		event.setPublishedAt(updatePost.getPublishedAt());
 		event.setCreatedAt(updatePost.getCreatedAt());
 		event.setEventType(KafkaEvent.UPDATED.name());
 		event.setUpdatedAt(updatePost.getUpdatedAt());
@@ -194,7 +191,7 @@ public class PostServiceImpl implements PostService {
 		event.setCategoryId(existedPost.getCategoryId());
 		event.setViewCount(existedPost.getViewCount());
 		event.setLikeCount(existedPost.getLikeCount());
-		event.setPulishedAt(existedPost.getPublishedAt());
+		event.setPublishedAt(existedPost.getPublishedAt());
 		event.setCreatedAt(existedPost.getCreatedAt());
 		event.setEventType(KafkaEvent.DELETED.name());
 		event.setUpdatedAt(existedPost.getUpdatedAt());
@@ -253,7 +250,10 @@ public class PostServiceImpl implements PostService {
 	}
 
 	@Override
-	@CachePut(value = "postLike", key = "#postId")
+	@Caching(evict = {
+		    @CacheEvict(value = "postLikeCount", key = "#postId"),
+		    @CacheEvict(value = "postById", key = "#postId")
+		})
 	public Post addLike(Long postId, PostLike likes, Authentication authentication) {
 		Post post = postRepostiory.findById(postId)
 				.orElseThrow(() -> new PostNotFoundException("Post not found by this post ID : " + postId));
@@ -300,13 +300,15 @@ public class PostServiceImpl implements PostService {
 
 	@Override
 	@Transactional
+	@Caching(evict = { @CacheEvict(value = "postById", key = "#postId"),
+			@CacheEvict(value = "postList", allEntries = true), @CacheEvict(value = "postLikeCount", key = "#postId") })
 	public void deleteAllPostByUserId(Long userId) {
 		postRepostiory.deleteAllByauthorId(userId);
 
 	}
 
 	@Override
-	@Cacheable(value = "postLikes", key = "#postId")
+	@Cacheable(value = "postLikeCount", key = "#postId")
 	public int totalLikes(Long postId) {
 		Post post = postRepostiory.findById(postId)
 				.orElseThrow(() -> new PostNotFoundException("post not found by this post ID : " + postId));
@@ -315,6 +317,7 @@ public class PostServiceImpl implements PostService {
 	}
 
 	@Override
+	@Cacheable(value = "postById",key = "#postId")
 	public PostDto findById(Long postId) {
 		Post post = postRepostiory.findById(postId)
 				.orElseThrow(() -> new PostNotFoundException("post not found by this post ID : " + postId));
@@ -325,12 +328,12 @@ public class PostServiceImpl implements PostService {
 		dto.setSlug(post.getSlug());
 		dto.setContent(post.getContent());
 		dto.setExcerpt(post.getExcerpt());
-		dto.setStatus(post.getStatus());
+		dto.setStatus(updatStatus(post.getStatus().name()));
 		dto.setAuthorId(post.getAuthorId());
 		dto.setCategoryId(post.getCategoryId());
 		dto.setViewCount(post.getViewCount());
 		dto.setLikeCount(post.getLikeCount());
-		dto.setPulishedAt(post.getPublishedAt());
+		dto.setPublishedAt(post.getPublishedAt());
 		dto.setCreatedAt(post.getCreatedAt());
 		return dto;
 	}

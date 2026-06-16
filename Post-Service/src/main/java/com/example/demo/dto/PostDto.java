@@ -28,7 +28,7 @@ public class PostDto {
 	private String excerpt;
 	@Column(nullable = false)
 	@Enumerated(EnumType.STRING)
-	private PostStatus status = PostStatus.PUBLISHED;
+	private PostStatus status;
 	@Column(nullable = false)
 	private Long authorId;
 	@Column(nullable = true)
@@ -37,7 +37,7 @@ public class PostDto {
 	private Integer likeCount;
 
 	@Column(nullable = true)
-	private LocalDateTime pulishedAt;
+	private LocalDateTime publishedAt;
 
 	@Column(nullable = false)
 	private LocalDateTime createdAt;

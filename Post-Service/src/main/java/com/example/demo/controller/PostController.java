@@ -45,7 +45,7 @@ public class PostController {
 
 	@RateLimiter(name = "myRateLimiter")
 	@PreAuthorize("hasAuthority('POST_UPDATE_OWN')")
-	@PutMapping("/updatpost/{id}")
+	@PutMapping("/updatepost/{id}")
 	public ResponseEntity<?> updatPost(@PathVariable("id") Long postId, @RequestBody PostDto postDto,
 			Authentication authentication) {
 		Post updatePost = postService.updatePost(postId, postDto, authentication);
