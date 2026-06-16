@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -121,6 +122,7 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	@Modifying
+	@CachePut(value = "users", key = "#authentication.name")
 	public UserResponseDto updateUser(UserDto userDto, Authentication authentication) {
 		Long userId = resolveUserId(authentication.getName());
 		User existedUser = repository.findById(userId)
@@ -158,6 +160,7 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	@Transactional
+	@Cacheable(value = "users", key = "#username")
 	public UserResponseDto findByUserName(String username) {
 		User user = repository.findByUsername(username).orElseThrow(() -> new UserNotFoundException("User not found"));
 		UserResponseDto dto = new UserResponseDto();
@@ -173,7 +176,7 @@ public class UserServiceImpl implements UserService {
 	}
 
 	@Override
-	@CacheEvict(value = "username", key = "#username")
+	@CacheEvict(value = "users", key = "#username")
 	public void deleteUser(String username) {
 		User user = repository.findByUsername(username)
 				.orElseThrow(() -> new UserNotFoundException("User not Found with this name : " + username));
@@ -201,6 +204,7 @@ public class UserServiceImpl implements UserService {
 	@Override
 
 	@Transactional
+	@Cacheable(value = "users", key = "'all'")
 	public List<UserResponseDto> findAll() {
 		List<User> allWithDetails = repository.findAllWithDetails();
 		if (allWithDetails.isEmpty()) {
@@ -226,6 +230,7 @@ public class UserServiceImpl implements UserService {
 	}
 
 	@Override
+	@Cacheable(value = "users", key = "#userId")
 	public UserDto findById(Long userId) {
 		User user = repository.findById(userId)
 				.orElseThrow(() -> new UserNotFoundException("User Not Found Exception"));
@@ -245,7 +250,7 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	@Transactional
-
+	@Cacheable(value = "posts", key = "#authorId")
 	public void addPost(Long authorId, PostEvent event) {
 		User user = repository.findById(authorId)
 				.orElseThrow(() -> new UserNotFoundException("User not Found with this ID : " + authorId));
