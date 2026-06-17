@@ -46,14 +46,12 @@ public class CategoryServiceImpl implements CategoryService {
 		return categoryRepository.save(category);
 	}
 
-	@CachePut(value = "category", key = "#cId")
+	@CachePut(value = "updateCategory", key = "#cId")
 	@Override
 	public Category updateCategories(Long cId, CategoryDto category) {
 		Category existedCategory = categoryRepository.findById(cId)
 				.orElseThrow(() -> new CategoryNotFoundException("Category not found exception"));
-		if (categoryRepository.findByCategorySlug(category.getCategorySlug()).isPresent()) {
-			throw new SlugAlreadyExistException("Slug already Existed :" + category.getCategorySlug());
-		}
+		
 		if (category.getParentId() != null) {
 			Category parentCategory = categoryRepository.findById(category.getParentId())
 					.orElseThrow(() -> new CategoryNotFoundException("Parent category not found"));

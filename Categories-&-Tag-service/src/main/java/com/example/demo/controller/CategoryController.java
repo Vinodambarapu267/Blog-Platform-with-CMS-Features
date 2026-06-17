@@ -56,7 +56,7 @@ public class CategoryController {
 	}
 
 	@GetMapping
-	@RateLimiter(name = "myRateLimiter", fallbackMethod = "rateLimitFallback")
+
 	public ResponseEntity<?> getAllCategories(@RequestParam int page, @RequestParam String sortBy) {
 		Page<Category> allCategories = categoryService.getAllCategories(page, sortBy);
 		if (allCategories == null) {
@@ -75,8 +75,8 @@ public class CategoryController {
 
 	@GetMapping("/{category-id}/validate")
 	@RateLimiter(name = "myRateLimiter", fallbackMethod = "rateLimitFallback")
-	public String validateCategory(@PathVariable("category-id") Long id) {
-		return categoryService.isExistCatgory(id);
+	public ResponseEntity<String> validateCategory(@PathVariable("category-id") Long id) {
+		return ResponseEntity.ok(categoryService.isExistCatgory(id));
 	}
 
 	public ResponseEntity<String> rateLimitFallback(Exception ex) {

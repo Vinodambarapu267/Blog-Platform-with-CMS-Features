@@ -63,7 +63,7 @@ public class TagServiceImpl implements TagService {
 		repository.delete(tags);
 	}
 
-	@CacheEvict(value = "tags", key = "'all'")
+	@Cacheable(value = "tags", key = "'all'")
 	@Override
 	public List<Tag> findAll() {
 		List<Tag> allTags = repository.findAll();
