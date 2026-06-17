@@ -33,6 +33,7 @@ public class CommentController {
 	private CommentService commentService;
 
 	@PostMapping("/posts/{postId}/comments")
+	@PreAuthorize("hasAuthority('COMMENT_CREATE')")
 	public ResponseEntity<?> addComment(@PathVariable Long postId, @RequestBody CommentDto commentDto,
 			Authentication authentication) {
 		Comment comment = commentService.addComment(postId, commentDto, authentication.getName());
@@ -44,9 +45,9 @@ public class CommentController {
 				"commented successfully", comment));
 	}
 
-	@PutMapping("/posts/{postId}/comments")
+	@PutMapping("/posts/{id}/comments")
 	@RateLimiter(name = "myRateLimiter")
-	@PreAuthorize("hasAuthority('COMMENT_CREATE')")
+	@PreAuthorize("hasAuthority('COMMENT_UPDATE_ANY')or hasAuthority('COMMENT_UPDATE_OWN')")
 	public ResponseEntity<?> updateComment(@PathVariable Long id, @RequestBody CommentDto commentDto,
 			Authentication authentication) {
 		Comment updateComment = commentService.updateComment(id, commentDto, authentication);

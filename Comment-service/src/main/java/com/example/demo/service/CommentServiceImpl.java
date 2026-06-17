@@ -88,7 +88,7 @@ public class CommentServiceImpl implements CommentService {
 	}
 
 	@Override
-	@CachePut(value = "comment", key = "#id")
+	@CachePut(value = "updateComment", key = "#id")
 	public Comment updateComment(Long id, CommentDto commentDto, Authentication authentication) {
 		Comment existing = commentRepository.findById(id)
 				.orElseThrow(() -> new CommentNotFoundException("Comment not found : " + id));
@@ -126,6 +126,7 @@ public class CommentServiceImpl implements CommentService {
 	}
 
 	@Override
+	@Cacheable(value = "allComments",key = "'all'")
 	public List<Comment> readComments(Long postId) {
 		List<Comment> allComments = commentRepository.findAllByPostId(postId);
 		if (allComments.isEmpty()) {
@@ -136,7 +137,7 @@ public class CommentServiceImpl implements CommentService {
 	}
 
 	@Override
-	@CacheEvict(value = "comment", key = "#id")
+	@CacheEvict(value = "deleteComment", key = "#id")
 	public String deleteComment(Long id, Authentication authentication) {
 		Comment comment = commentRepository.findById(id)
 				.orElseThrow(() -> new CommentNotFoundException("comment Already deleted"));
@@ -155,12 +156,13 @@ public class CommentServiceImpl implements CommentService {
 
 	@Override
 	@Transactional
+	@CacheEvict(value = "deleteCommentByPostId",key = "#postId")
 	public void deleteAllCommentWhenThePostDeleted(Long postId) {
 		commentRepository.deleteByPostId(postId);
 	}
 
 	@Override
-	@CachePut(value = "comment", key = "#id")
+	@CachePut(value = "updateCommentStatus", key = "#id")
 	public Comment updateStatus(Long id, String status,Authentication authentication) {
 		Comment comment = commentRepository.findById(id)
 				.orElseThrow(() -> new CommentNotFoundException("Comment not found"));

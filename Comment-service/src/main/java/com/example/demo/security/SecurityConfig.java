@@ -35,9 +35,9 @@ public class SecurityConfig {
 		http.csrf(csrf -> csrf.disable())
 				.sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth -> auth.requestMatchers("/actuator/**").permitAll()
-						// GET comments is public — no token needed
+
 			            .requestMatchers(HttpMethod.GET, "/api/v1/comments/posts/{postId}/comments").permitAll()
-			            .anyRequest().authenticated())
+			            .requestMatchers("/api/v1/comments/**") .authenticated().anyRequest().authenticated())
 				.exceptionHandling(ex -> ex.authenticationEntryPoint(
 						(req, res, e) -> writeJsonError(res, HttpStatus.UNAUTHORIZED, "Missing or invalid token"))
 						.accessDeniedHandler((req, res, e) -> writeJsonError(res, HttpStatus.FORBIDDEN,

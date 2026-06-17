@@ -36,14 +36,13 @@ public enum Role {
             Permission.POST_LIKES,
             Permission.POST_PUBLISH,
             Permission.POST_UNPUBLISH,
-
+            
             Permission.COMMENT_READ,
             Permission.COMMENT_CREATE,
+            Permission.COMMENT_UPDATE_OWN,
+            Permission.COMMENT_DELETE_OWN,
             Permission.COMMENT_UPDATE_ANY,
             Permission.COMMENT_DELETE_ANY,
-            Permission.COMMENT_DELETE_OWN,
-            Permission.COMMENT_MODERATE,
-
             Permission.CONTENT_SEARCH,
             Permission.PROFILE_UPDATE_ANY
     )),
@@ -58,6 +57,7 @@ public enum Role {
             Permission.POST_PUBLISH,    
             Permission.POST_UNPUBLISH,  
             Permission.POST_LIKE,
+            Permission.COMMENT_CREATE,
             Permission.COMMENT_READ,
             Permission.COMMENT_MODERATE,
             Permission.COMMENT_DELETE_OWN,
@@ -67,8 +67,7 @@ public enum Role {
             Permission.CATEGORY_UPDATE,
             Permission.TAG_READ,
             Permission.TAG_CREATE,
-            Permission.TAG_UPDATE,
-            
+            Permission.TAG_UPDATE,          
             Permission.CONTENT_SEARCH
     )),
 
@@ -81,6 +80,7 @@ public enum Role {
             Permission.POST_SUBMIT_DRAFT,
             Permission.POST_LIKE,
             Permission.COMMENT_READ,
+            Permission.COMMENT_CREATE,
             Permission.COMMENT_DELETE_OWN,
             Permission.CONTENT_SEARCH
     )),
@@ -88,8 +88,9 @@ public enum Role {
     READER(Set.of(
             Permission.POST_READ,
             Permission.COMMENT_READ,
-            Permission.COMMENT_CREATE,
+            Permission.COMMENT_CREATE,  
             Permission.COMMENT_DELETE_OWN,
+            Permission.POST_UPDATE_OWN,
             Permission.POST_LIKE,
             Permission.PROFILE_UPDATE_OWN,
             Permission.CONTENT_SEARCH
