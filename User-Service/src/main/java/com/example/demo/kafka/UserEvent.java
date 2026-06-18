@@ -25,10 +25,9 @@ public class UserEvent {
 	@Enumerated(EnumType.STRING)
 	private UserStatus status = UserStatus.ACTIVE;
 	private String email;
+	private String password;
 	private LocalDateTime createdAt;
-
 	private LocalDateTime updatedAt;
-
 	private UserRole role;
 	private String eventType;
 }

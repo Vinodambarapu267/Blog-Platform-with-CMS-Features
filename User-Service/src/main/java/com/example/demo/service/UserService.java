@@ -5,14 +5,14 @@ import java.util.List;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
+import com.example.demo.dto.UserCreateRequest;
 import com.example.demo.dto.UserDto;
 import com.example.demo.dto.UserResponseDto;
-import com.example.demo.entity.User;
 import com.example.demo.kafka.PostEvent;
 
 @Service
 public interface UserService {
-	public UserResponseDto createUser(User user);
+	public UserResponseDto createUser(UserCreateRequest user);
 
 	public UserResponseDto updateUser(UserDto userDto,Authentication authentication);
 

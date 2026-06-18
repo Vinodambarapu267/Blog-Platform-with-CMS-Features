@@ -54,6 +54,7 @@ public class User implements Serializable {
 	private UserStatus status = UserStatus.ACTIVE;
 	@Column(nullable = true)
 	private String email;
+	private String password;
 	@CreationTimestamp
 	private LocalDateTime createdAt;
 	@UpdateTimestamp

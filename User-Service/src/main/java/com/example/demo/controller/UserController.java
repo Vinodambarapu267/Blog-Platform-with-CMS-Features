@@ -17,9 +17,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.demo.dto.UserCreateRequest;
 import com.example.demo.dto.UserDto;
 import com.example.demo.dto.UserResponseDto;
-import com.example.demo.entity.User;
 import com.example.demo.service.UserService;
 import com.example.demo.utility.ResponseMessage;
 import com.example.demo.utility.ResponseStatus;
@@ -34,21 +34,14 @@ public class UserController {
 
 	@PostMapping("/createuser")
 	@RateLimiter(name = "myRateLimiter")
-	@PreAuthorize("hasAuthority('USER_CREATE')")
-	public ResponseEntity<?> createUser(@RequestBody User user) {
+	public UserResponseDto createUser(@RequestBody UserCreateRequest user) {
 		UserResponseDto save = userService.createUser(user);
-		if (user == null) {
-			return ResponseEntity.ok(new ResponseMessage<>(HttpURLConnection.HTTP_BAD_REQUEST,
-					ResponseStatus.FAILURE.name(), "User creating failed"));
-		}
-		return ResponseEntity.ok(new ResponseMessage<>(HttpURLConnection.HTTP_CREATED, ResponseStatus.SUCCESS.name(),
-				"User created successfully", save));
+		return save;
 	}
 
 	@PutMapping("/updateuser/me")
 	@RateLimiter(name = "myRateLimiter")
-	public ResponseEntity<?> updateUser( @RequestBody UserDto userDto,
-			Authentication authentication) {
+	public ResponseEntity<?> updateUser(@RequestBody UserDto userDto, Authentication authentication) {
 		UserResponseDto updateUser = userService.updateUser(userDto, authentication);
 		if (updateUser == null) {
 			return ResponseEntity.ok(new ResponseMessage<>(HttpURLConnection.HTTP_BAD_REQUEST,

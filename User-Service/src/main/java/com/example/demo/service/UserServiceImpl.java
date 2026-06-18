@@ -19,6 +19,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
+import com.example.demo.dto.UserCreateRequest;
 import com.example.demo.dto.UserDto;
 import com.example.demo.dto.UserResponseDto;
 import com.example.demo.entity.User;
@@ -78,7 +79,7 @@ public class UserServiceImpl implements UserService {
 	@Override
 	@Modifying
 
-	public UserResponseDto createUser(User user) {
+	public UserResponseDto createUser(UserCreateRequest user) {
 
 		Optional<User> existingUser = repository.findByUsername(user.getUsername());
 		if (existingUser.isPresent()) {
@@ -88,7 +89,7 @@ public class UserServiceImpl implements UserService {
 		newUser.setBio(user.getBio());
 		newUser.setDisplayName(user.getDisplayName());
 		newUser.setUsername(user.getUsername());
-		newUser.setPostIds(user.getPostIds());
+		newUser.setPassword(user.getPassword());
 		Map<String, String> links = new HashMap<>();
 		if (user.getSocialLinks() != null) {
 			user.getSocialLinks().forEach((key, value) -> {
@@ -100,10 +101,12 @@ public class UserServiceImpl implements UserService {
 		}
 		newUser.setEmail(user.getEmail());
 		newUser.setSocialLinks(links);
+		newUser.setRole(user.getRole());
 		User savedUser = repository.save(newUser);
 		UserEvent event = new UserEvent();
 		event.setUserId(savedUser.getUserId());
 		event.setBio(savedUser.getBio());
+		event.setPassword(savedUser.getPassword());
 		event.setUsername(savedUser.getUsername());
 		event.setDisplayName(savedUser.getDisplayName());
 		event.setSocialLinks(savedUser.getSocialLinks());
@@ -113,6 +116,7 @@ public class UserServiceImpl implements UserService {
 		event.setStatus(savedUser.getStatus());
 		event.setRole(savedUser.getRole());
 		event.setEmail(savedUser.getEmail());
+		System.err.println(event.getPassword());
 		event.setEventType(KafkaUserEvent.REGISTERED.name());
 		kafkaUserProducer.publishUserRegisteredEvent(event);
 		return new UserResponseDto(savedUser.getUserId(), savedUser.getUsername(), savedUser.getDisplayName(),
@@ -149,6 +153,7 @@ public class UserServiceImpl implements UserService {
 		event.setUsername(updatedUser.getUsername());
 		event.setDisplayName(updatedUser.getDisplayName());
 		event.setBio(updatedUser.getBio());
+		event.setPassword(updatedUser.getPassword());
 		event.setEmail(existedUser.getEmail());
 		event.setSocialLinks(updatedUser.getSocialLinks());
 		event.setEventType(KafkaUserEvent.UPDATED.name());

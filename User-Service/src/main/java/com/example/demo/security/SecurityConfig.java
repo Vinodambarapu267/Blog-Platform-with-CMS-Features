@@ -28,7 +28,7 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/actuator/**","/api/v1/users").permitAll()
+                .requestMatchers("/actuator/**","/api/v1/users/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/users/findbyname/{username}").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/users/*/posts").permitAll()
                 .requestMatchers("/updateuser/me").authenticated()
