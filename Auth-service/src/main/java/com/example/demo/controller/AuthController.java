@@ -26,32 +26,26 @@ public class AuthController {
 	private AuthService service;
 	@Autowired
 	private AuthenticationManager authenticationManager;
-@Autowired
-private UserCredentialRepository repository;
-	@PostMapping("/register")
-	public String addNewUser(@RequestBody UserCredential user) {
-		return service.saveUser(user);
-	}
+	@Autowired
+	private UserCredentialRepository repository;
+
 	@PostMapping("/token")
 	public String getToken(@RequestBody AuthRequest authRequest) {
-	    try {
-	        Authentication authentication = authenticationManager.authenticate(
-	                new UsernamePasswordAuthenticationToken(
-	                        authRequest.getUsername(),
-	                        authRequest.getPassword()
-	                )
-	        );
+		try {
+			Authentication authentication = authenticationManager.authenticate(
+					new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword()));
 
-	        UserCredential user = repository.findByUsername(authentication.getName())
-	                .orElseThrow(() -> new UserNotFoundException("User not found"));
+			UserCredential user = repository.findByUsername(authentication.getName())
+					.orElseThrow(() -> new UserNotFoundException("User not found"));
 
-	        return service.generateToken(authentication.getName(), user.getRole());
+			return service.generateToken(authentication.getName(), user.getRole());
 
-	    } catch (Exception e) {
-	        e.printStackTrace();
-	        throw e;
-	    }
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw e;
+		}
 	}
+
 	@GetMapping("/validate")
 	public String validateToken(@RequestParam("token") String token) {
 		service.validateToken(token);
@@ -60,7 +54,7 @@ private UserCredentialRepository repository;
 
 	@PostMapping("/login")
 	public ResponseEntity<String> login(@RequestBody LoginDto dto) {
-		String response = service.login(dto.getEmail(),dto.getPassword());
+		String response = service.login(dto.getEmail(), dto.getPassword());
 		return ResponseEntity.ok(response);
 	}
 }

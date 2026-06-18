@@ -22,14 +22,7 @@ public class AuthService {
 	private final BCryptPasswordEncoder passwordEncoder;
 	private final JwtUtil jwtUtil;
 
-	@PreAuthorize("permitAll()")
-	public String saveUser(UserCredential credential) {
-		System.out.println("Raw password before encode: " + credential.getPassword());
-		credential.setPassword(passwordEncoder.encode(credential.getPassword()));
-		System.out.println("Stored hash: " + credential.getPassword());
-		repository.save(credential);
-		return "User added successfully";
-	}
+	
 
 	public String generateToken(String username, String role) {
 		return jwtUtil.generateToken(username, role);
