@@ -34,11 +34,12 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-            		.requestMatchers("/api/posts/**").authenticated()
+            		
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/posts", "/api/v1/posts/*", "/api/v1/posts/{id}/likes")
-                    .permitAll()
-                .anyRequest().authenticated()
+                .permitAll()
+                .requestMatchers("/api/posts/**").authenticated()
+                 .anyRequest().authenticated()
             )
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint((req, res, e) -> writeJsonError(res, HttpStatus.UNAUTHORIZED, "Missing or invalid token"))
