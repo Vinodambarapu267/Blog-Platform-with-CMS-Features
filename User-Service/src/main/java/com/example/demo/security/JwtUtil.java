@@ -3,6 +3,7 @@ package com.example.demo.security;
 import java.security.Key;
 import java.util.Date;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import io.jsonwebtoken.Claims;
@@ -13,8 +14,12 @@ import io.jsonwebtoken.security.Keys;
 @Component
 public class JwtUtil {
 
-	// Must match the secret used by Auth-service / Api-Gateway
-	public static final String SECRET = "5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437";
+	public static String SECRET;
+
+	@Value("${jwt.secret.key}")
+	public void setSecret(String secret) {
+		SECRET = secret;
+	}
 
 	private Key getSignKey() {
 		byte[] keyBytes = Decoders.BASE64.decode(SECRET);
