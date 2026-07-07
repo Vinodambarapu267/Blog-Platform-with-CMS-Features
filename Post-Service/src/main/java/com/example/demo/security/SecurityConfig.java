@@ -38,6 +38,7 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/posts", "/api/v1/posts/*", "/api/v1/posts/{id}/likes")
                 .permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/posts/createpost").permitAll()
                 .requestMatchers("/api/posts/**").authenticated()
                  .anyRequest().authenticated()
             )
