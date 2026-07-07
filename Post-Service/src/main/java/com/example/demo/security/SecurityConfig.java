@@ -38,7 +38,7 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/posts", "/api/v1/posts/*", "/api/v1/posts/{id}/likes")
                 .permitAll()
-                .requestMatchers("/api/posts/**").authenticated()
+                .requestMatchers("/api/v1/posts/**").authenticated()
                  .anyRequest().authenticated()
             )
             .exceptionHandling(ex -> ex
