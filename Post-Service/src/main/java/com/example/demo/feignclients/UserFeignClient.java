@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import com.example.demo.dto.UserDto;
 
-@FeignClient(name = "users-service", url = "http://localhost:8082/api/v1/users")
+@FeignClient(name = "USERS-SERVICE", path = "/api/v1/users")
 public interface UserFeignClient {
     @GetMapping("/{userId}")
     UserDto findByUserId(@PathVariable("userId") Long userId);
