@@ -1,6 +1,7 @@
 package com.example.demo.controller;
 
 import java.net.HttpURLConnection;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -69,6 +70,17 @@ public class PostController {
 	public String updateStatus(@PathVariable("id") Long postId, @RequestParam String status,
 			Authentication authentication) {
 		return postService.updatePostStatus(postId, status, authentication);
+	}
+
+	@GetMapping("/findpostsbyuserid/{userId}")
+	public ResponseEntity<?> findAllByAuthorId(@PathVariable Long userId) {
+		List<Post> posts = postService.findAllByAuthorId(userId);
+		if (posts == null) {
+			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_BAD_REQUEST,
+					ResponseStatus.FAILURE.name(), "liking of Post Failed"));
+		}
+		return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_CREATED, ResponseStatus.SUCCESS.name(),
+				"Post liked succcessfully", posts));
 	}
 
 	@PostMapping("/{id}/like")

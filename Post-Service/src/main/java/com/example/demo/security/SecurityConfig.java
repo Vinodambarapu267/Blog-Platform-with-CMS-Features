@@ -36,7 +36,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
             		
                 .requestMatchers("/actuator/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/v1/posts", "/api/v1/posts/*", "/api/v1/posts/{id}/likes")
+                .requestMatchers(HttpMethod.GET, "/api/v1/posts/**", "/api/v1/posts/*", "/api/v1/posts/{id}/likes")
                 .permitAll()
                 .requestMatchers("/api/v1/posts/**").authenticated()
                  .anyRequest().authenticated()

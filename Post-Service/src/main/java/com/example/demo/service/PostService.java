@@ -11,7 +11,7 @@ import com.example.demo.entity.PostLike;
 
 @Service
 public interface PostService {
-	
+
 	public Post createPost(Post post, String username);
 
 	public Post updatePost(Long postId, PostDto postDto, Authentication authentication);
@@ -29,4 +29,6 @@ public interface PostService {
 	public void deleteAllPostByUserId(Long userId);
 
 	public PostDto findById(Long postId);
+
+	public List<Post> findAllByAuthorId(Long authorId);
 }
