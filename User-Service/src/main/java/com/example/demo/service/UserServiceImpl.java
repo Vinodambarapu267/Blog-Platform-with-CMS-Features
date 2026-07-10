@@ -270,6 +270,7 @@ public class UserServiceImpl implements UserService {
 		userEvent.setUsername(savedUser.getUsername());
 		userEvent.setDisplayName(savedUser.getDisplayName());
 		userEvent.setBio(savedUser.getBio());
+		userEvent.setPassword(savedUser.getPassword());
 		userEvent.setEmail(savedUser.getEmail());
 		userEvent.setSocialLinks(savedUser.getSocialLinks());
 		userEvent.setEventType(KafkaUserEvent.UPDATED.name());
