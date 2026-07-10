@@ -12,6 +12,6 @@ public class CategoryDto {
 	private String categoryName;
 	@Column(unique = true)
 	private String categorySlug;
-	private String Description;
+	private String description;
 	private Long  parentId;
 }
