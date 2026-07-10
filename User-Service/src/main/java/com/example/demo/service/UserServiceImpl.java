@@ -14,9 +14,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.annotation.Bean;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.example.demo.dto.UserCreateRequest;
@@ -68,14 +71,6 @@ public class UserServiceImpl implements UserService {
 		return user.getUserId();
 	}
 
-	private boolean isOwner(User user, Authentication authentication) {
-		if (authentication == null || authentication.getName() == null) {
-			return false;
-		}
-		Long callerUserId = resolveUserId(authentication.getName());
-		return user.getUserId() != null && user.getUserId().equals(callerUserId);
-	}
-
 	@Override
 	@Modifying
 
@@ -89,7 +84,7 @@ public class UserServiceImpl implements UserService {
 		newUser.setBio(user.getBio());
 		newUser.setDisplayName(user.getDisplayName());
 		newUser.setUsername(user.getUsername());
-		newUser.setPassword(user.getPassword());
+		newUser.setPassword(passwordEncoder().encode(user.getPassword()));
 		Map<String, String> links = new HashMap<>();
 		if (user.getSocialLinks() != null) {
 			user.getSocialLinks().forEach((key, value) -> {
@@ -116,7 +111,6 @@ public class UserServiceImpl implements UserService {
 		event.setStatus(savedUser.getStatus());
 		event.setRole(savedUser.getRole());
 		event.setEmail(savedUser.getEmail());
-		System.err.println(event.getPassword());
 		event.setEventType(KafkaUserEvent.REGISTERED.name());
 		kafkaUserProducer.publishUserRegisteredEvent(event);
 		return new UserResponseDto(savedUser.getUserId(), savedUser.getUsername(), savedUser.getDisplayName(),
@@ -283,4 +277,8 @@ public class UserServiceImpl implements UserService {
 
 	}
 
+	@Bean
+	public PasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
+	}
 }
