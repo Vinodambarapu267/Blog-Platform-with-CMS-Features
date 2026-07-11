@@ -36,7 +36,6 @@ public class Comment implements Serializable{
 	private Long postId;
 	@Column(nullable = false)
 	private Long authorId;
-	@Column(nullable = false)
 	private Long parentId;
 	@Column(nullable = false)
 	private String content;
