@@ -40,7 +40,6 @@ public class RouteValidator {
 
 		boolean isOpenPost = HttpMethod.POST.equals(method)
 				&& OPEN_POST_ENDPOINTS.stream().anyMatch(pattern -> pathMatcher.match(pattern, path));
-		System.out.println("path : " + path);
 		return !(isOpenGet || isOpenPost);
 	};
 }
