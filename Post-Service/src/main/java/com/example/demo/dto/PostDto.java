@@ -7,6 +7,8 @@ import java.time.LocalDateTime;
 import com.example.demo.utility.PostStatus;
 
 import jakarta.persistence.Column;
+import java.io.Serializable;
+
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import lombok.AllArgsConstructor;
@@ -16,7 +18,8 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class PostDto {
+public class PostDto implements Serializable {
+
 	private Long postId;
 	@Column(nullable = false)
 	private String title;
