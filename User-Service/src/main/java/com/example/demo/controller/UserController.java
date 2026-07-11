@@ -67,7 +67,6 @@ public class UserController {
 
 	@GetMapping("/{userId}")
 	@RateLimiter(name = "myRateLimiter")
-	@PreAuthorize("hasAuthority('USER_READ')")
 	public UserDto findByUserId(@PathVariable Long userId) {
 		return userService.findById(userId);
 
