@@ -147,7 +147,6 @@ public class UserServiceImpl implements UserService {
 		event.setUsername(updatedUser.getUsername());
 		event.setDisplayName(updatedUser.getDisplayName());
 		event.setBio(updatedUser.getBio());
-		event.setPassword(updatedUser.getPassword());
 		event.setEmail(existedUser.getEmail());
 		event.setSocialLinks(updatedUser.getSocialLinks());
 		event.setEventType(KafkaUserEvent.UPDATED.name());
@@ -270,7 +269,6 @@ public class UserServiceImpl implements UserService {
 		userEvent.setUsername(savedUser.getUsername());
 		userEvent.setDisplayName(savedUser.getDisplayName());
 		userEvent.setBio(savedUser.getBio());
-		userEvent.setPassword(savedUser.getPassword());
 		userEvent.setEmail(savedUser.getEmail());
 		userEvent.setSocialLinks(savedUser.getSocialLinks());
 		userEvent.setEventType(KafkaUserEvent.UPDATED.name());

@@ -50,7 +50,6 @@ public class KafkaUserConsumer {
 
 			updateUser.setUsername(event.getUsername());
 			updateUser.setEmail(event.getEmail());
-			updateUser.setPassword(event.getPassword());
 			updateUser.setRole(event.getRole() != null ? event.getRole().name() : null);
 			updateUser.setActive(true);
 			credentialRepository.save(updateUser);
