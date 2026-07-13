@@ -111,4 +111,14 @@ public class PostController {
 		return totalLikes;
 	}
 
+	@GetMapping
+	public ResponseEntity<?> findAllPost() {
+		List<Post> posts = postService.findAllPost();
+		if (posts == null) {
+			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_BAD_REQUEST,
+					ResponseStatus.FAILURE.name(), "Retriving posts failed!!"));
+		}
+		return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_CREATED, ResponseStatus.SUCCESS.name(),
+				"All  Posts retrived succcessfully", posts));
+	}
 }
