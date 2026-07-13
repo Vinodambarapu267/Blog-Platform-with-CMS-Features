@@ -26,6 +26,7 @@ import com.example.demo.dto.UserCreateRequest;
 import com.example.demo.dto.UserDto;
 import com.example.demo.dto.UserResponseDto;
 import com.example.demo.entity.User;
+import com.example.demo.excepetion.URLIncorrectException;
 import com.example.demo.excepetion.UserAlreadyExistException;
 import com.example.demo.excepetion.UserNotFoundException;
 import com.example.demo.kafka.KafkaUserProducer;
@@ -90,6 +91,8 @@ public class UserServiceImpl implements UserService {
 			user.getSocialLinks().forEach((key, value) -> {
 				if (value.startsWith("https://")) {
 					links.put(key, value);
+				}else {
+					throw new URLIncorrectException("Enter the secure URl's");
 				}
 			});
 
