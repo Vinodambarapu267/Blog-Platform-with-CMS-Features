@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ErrorMessage {
 	private LocalDateTime localDateTime;
-	private Integer status;
+	private Integer statusCode;
 	private String message;
 	private String path;
 }
