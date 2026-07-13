@@ -42,9 +42,6 @@ public class KafkaUserConsumer {
 			credentialRepository.save(credential);
 		}
 		if (KafkaEvents.UPDATED.name().equals(event.getEventType())) {
-			if (event.getPassword() == null || event.getPassword().isBlank()) {
-				throw new IllegalArgumentException("Password is missing in Kafka event");
-			}
 			UserCredential updateUser = credentialRepository.findById(event.getUserId()).orElseThrow(
 					() -> new UserNotFoundException("No credential found for the userId" + event.getUserId()));
 
