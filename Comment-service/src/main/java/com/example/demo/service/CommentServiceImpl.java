@@ -184,6 +184,7 @@ public class CommentServiceImpl implements CommentService {
 		case "APPROVED" -> CommentStatus.APPROVED;
 		case "PENDING" -> CommentStatus.PENDING;
 		case "REJECTED" -> CommentStatus.REJECTED;
+		case "DELETED" -> CommentStatus.DELETED; 
 		default -> throw new IllegalArgumentException("enter correct status");
 		};
 	}
