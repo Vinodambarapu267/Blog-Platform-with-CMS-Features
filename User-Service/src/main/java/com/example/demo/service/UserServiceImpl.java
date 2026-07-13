@@ -89,11 +89,10 @@ public class UserServiceImpl implements UserService {
 		Map<String, String> links = new HashMap<>();
 		if (user.getSocialLinks() != null) {
 			user.getSocialLinks().forEach((key, value) -> {
-				if (value.startsWith("https://")) {
-					links.put(key, value);
-				}else {
+				if (!value.startsWith("https://")) {
 					throw new URLIncorrectException("Enter the secure URl's");
 				}
+				links.put(key, value);
 			});
 
 		}
@@ -134,15 +133,13 @@ public class UserServiceImpl implements UserService {
 		existedUser.setBio(userDto.getBio());
 		existedUser.setSocialLinks(userDto.getSocialLinks());
 		existedUser.setEmail(userDto.getEmail());
-		if (existedUser.getSocialLinks() == null) {
-			existedUser.setSocialLinks(new HashMap<>());
-		}
-		if (existedUser.getSocialLinks() == null) {
-			existedUser.setSocialLinks(new HashMap<>());
-		}
-
 		if (userDto.getSocialLinks() != null) {
-			existedUser.getSocialLinks().putAll(userDto.getSocialLinks());
+		    userDto.getSocialLinks().forEach((key, value) -> {
+		        if (!value.startsWith("https://")) {
+		            throw new URLIncorrectException("Enter the secure URl's");
+		        }
+		    });
+		    existedUser.getSocialLinks().putAll(userDto.getSocialLinks());
 		}
 		User updatedUser = repository.save(existedUser);
 		UserEvent event = new UserEvent();
