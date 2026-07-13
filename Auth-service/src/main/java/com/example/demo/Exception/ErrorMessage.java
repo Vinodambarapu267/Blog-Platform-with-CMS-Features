@@ -10,8 +10,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ErrorMessage {
-	private LocalDateTime dateTime;
+	private LocalDateTime localDateTime;
 	private Integer status;
-	private String trace;
+	private String message;
 	private String path;
 }
