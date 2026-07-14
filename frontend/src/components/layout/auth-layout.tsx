@@ -6,7 +6,7 @@ import { ROUTES } from "@/constants";
 
 const points = [
   { icon: ShieldCheck, text: "Stateless JWT auth with role-based access across every service" },
-  { icon: Network, text: "Nine microservices behind a single Spring Cloud Gateway" },
+  { icon: Network, text: "Eight microservices behind a single Spring Cloud Gateway" },
   { icon: Zap, text: "Kafka-driven events keep users, posts, and comments in sync" },
 ];
 
@@ -26,7 +26,7 @@ export function AuthLayout({
           <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-secondary">
             <Sparkles className="h-4 w-4 text-white" />
           </span>
-          Aurea<span className="text-gradient">CMS</span>
+          MallvinTech<span className="text-gradient">CMS</span>
         </Link>
 
         <div className="max-w-md">
@@ -56,7 +56,7 @@ export function AuthLayout({
           </div>
         </div>
 
-        <p className="text-xs text-text-muted">© {new Date().getFullYear()} AureaCMS</p>
+        <p className="text-xs text-text-muted">© {new Date().getFullYear()} MallvinTech CMS</p>
 
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-primary/20 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-24 left-1/3 h-72 w-72 rounded-full bg-secondary/20 blur-3xl" />
@@ -74,7 +74,7 @@ export function AuthLayout({
               <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-secondary">
                 <Sparkles className="h-4 w-4 text-white" />
               </span>
-              Aurea<span className="text-gradient">CMS</span>
+              MallvinTech<span className="text-gradient">CMS</span>
             </Link>
           </div>
           <h1 className="text-2xl font-semibold text-text-primary">{title}</h1>

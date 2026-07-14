@@ -44,7 +44,7 @@ export function Hero() {
           transition={{ duration: 0.55, delay: 0.1 }}
           className="mx-auto mt-6 max-w-2xl text-base text-text-secondary sm:text-lg"
         >
-          AureaCMS is a microservices blog platform built on Spring Boot: JWT auth, role-based
+          MallvinTech CMS is a microservices blog platform built on Spring Boot: JWT auth, role-based
           publishing workflows, Kafka-driven notifications, and a CMS that scales each concern —
           posts, taxonomy, comments — independently.
         </motion.p>
