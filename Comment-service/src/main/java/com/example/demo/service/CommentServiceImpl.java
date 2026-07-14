@@ -156,15 +156,15 @@ public class CommentServiceImpl implements CommentService {
 
 	@Override
 	@Transactional
-	@CacheEvict(value = "deleteCommentByPostId",key = "#postId")
+	@CacheEvict(value = "deleteCommentByPostId", key = "#postId")
 	public void deleteAllCommentWhenThePostDeleted(Long postId) {
 		commentRepository.deleteByPostId(postId);
 	}
 
 	@Override
-	@CacheEvict(value = "allComments", key = "#postId")
+	@CacheEvict(value = "allComments", key = "#id")
 	@CachePut(value = "updateCommentStatus", key = "#id")
-	public Comment updateStatus(Long id, String status,Authentication authentication) {
+	public Comment updateStatus(Long id, String status, Authentication authentication) {
 		Comment comment = commentRepository.findById(id)
 				.orElseThrow(() -> new CommentNotFoundException("Comment not found"));
 		comment.setStatus(updateCommentStatus(status.toUpperCase()));
@@ -180,12 +180,22 @@ public class CommentServiceImpl implements CommentService {
 		return saved;
 	}
 
+	@Override
+	@Cacheable(value = "AllComments", key = "'all'")
+	public List<Comment> findAllComments() {
+		List<Comment> comments = commentRepository.findAll();
+		if (comments == null) {
+			throw new CommentNotFoundException("No comment ");
+		}
+		return comments;
+	}
+
 	private CommentStatus updateCommentStatus(String status) {
 		return switch (status) {
 		case "APPROVED" -> CommentStatus.APPROVED;
 		case "PENDING" -> CommentStatus.PENDING;
 		case "REJECTED" -> CommentStatus.REJECTED;
-		case "DELETED" -> CommentStatus.DELETED; 
+		case "DELETED" -> CommentStatus.DELETED;
 		default -> throw new IllegalArgumentException("enter correct status");
 		};
 	}

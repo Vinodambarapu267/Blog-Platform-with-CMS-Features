@@ -59,15 +59,15 @@ public class CommentController {
 				"comment updated successfully", updateComment));
 	}
 
-	
 	@DeleteMapping("/{id}")
 	@RateLimiter(name = "myRateLimiter")
 	@PreAuthorize("hasAuthority('COMMENT_DELETE_ANY') or hasAuthority('COMMENT_DELETE_OWN')")
 	public String deleteComment(@PathVariable Long id, Authentication authentication) {
 		return commentService.deleteComment(id, authentication);
 	}
+
 	@GetMapping("/posts/{postId}/comments")
-	public ResponseEntity<?> readComment(@PathVariable Long postId){
+	public ResponseEntity<?> readComment(@PathVariable Long postId) {
 		List<Comment> comments = commentService.readComments(postId);
 		if (comments == null) {
 			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_NOT_ACCEPTABLE,
@@ -76,15 +76,25 @@ public class CommentController {
 		return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_CREATED, ResponseStatus.SUCCESS.name(),
 				"All comments Retrived successfully", comments));
 	}
-	
 
-	 @PatchMapping("/{id}/status")
-	    @RateLimiter(name = "myRateLimiter")
-	    @PreAuthorize("hasAuthority('COMMENT_MODERATE')")
-	    public ResponseEntity<?> updateStatus(@PathVariable Long id,
-	                                           @RequestParam String status,
-	                                           Authentication authentication) {
-	        Comment updateStatus = commentService.updateStatus(id, status, authentication);
-	        return ResponseEntity.ok(updateStatus);
-	    }
+	@PatchMapping("/{id}/status")
+	@RateLimiter(name = "myRateLimiter")
+	@PreAuthorize("hasAuthority('COMMENT_MODERATE')")
+	public ResponseEntity<?> updateStatus(@PathVariable Long id, @RequestParam String status,
+			Authentication authentication) {
+		Comment updateStatus = commentService.updateStatus(id, status, authentication);
+		return ResponseEntity.ok(updateStatus);
+	}
+
+	@GetMapping
+	@PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
+	public ResponseEntity<?> findAllComments() {
+		List<Comment> comments = commentService.findAllComments();
+		if (comments == null) {
+			return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_NOT_ACCEPTABLE,
+					ResponseStatus.FAILURE.name(), "comments retrived failed.. "));
+		}
+		return ResponseEntity.ok(new ResponseMessage(HttpURLConnection.HTTP_CREATED, ResponseStatus.SUCCESS.name(),
+				"All comments Retrived successfully", comments));
+	}
 }

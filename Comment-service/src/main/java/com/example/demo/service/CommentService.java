@@ -19,4 +19,6 @@ public interface CommentService {
 	public Comment updateStatus(Long id, String status, Authentication authentication);
 
 	public void deleteAllCommentWhenThePostDeleted(Long postId);
+
+	public List<Comment> findAllComments();
 }
