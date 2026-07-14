@@ -126,7 +126,7 @@ public class CommentServiceImpl implements CommentService {
 	}
 
 	@Override
-	@Cacheable(value = "allComments",key = "'all'")
+	@Cacheable(value = "allComments", key = "#postId")
 	public List<Comment> readComments(Long postId) {
 		List<Comment> allComments = commentRepository.findAllByPostId(postId);
 		if (allComments.isEmpty()) {
@@ -162,6 +162,7 @@ public class CommentServiceImpl implements CommentService {
 	}
 
 	@Override
+	@CacheEvict(value = "allComments", key = "#postId")
 	@CachePut(value = "updateCommentStatus", key = "#id")
 	public Comment updateStatus(Long id, String status,Authentication authentication) {
 		Comment comment = commentRepository.findById(id)
@@ -173,7 +174,7 @@ public class CommentServiceImpl implements CommentService {
 		event.setCommentId(saved.getCommentId());
 		event.setPostId(saved.getPostId());
 		event.setAuthorId(saved.getAuthorId());
-		event.setStatus(saved.getStatus());
+		event.setStatus(updateCommentStatus(saved.getStatus().name()));
 		event.setEventType(KafkaEvent.UPDATED.name());
 		commentKafkaProducer.commentModerated(event);
 		return saved;
