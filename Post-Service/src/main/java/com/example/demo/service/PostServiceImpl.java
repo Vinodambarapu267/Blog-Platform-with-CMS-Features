@@ -120,7 +120,10 @@ public class PostServiceImpl implements PostService {
 	}
 
 	@Override
-	@CachePut(value = "updatePost", key = "#postId")
+	@Caching(evict = {
+      		@CacheEvict(value = "postById", key = "#postId"),
+		@CacheEvict(value = "allPosts", key = "'all'")
+	})
 	public Post updatePost(Long postId, PostDto postDto, Authentication authentication) {
 		Post existedPost = postRepostiory.findById(postId)
 				.orElseThrow(() -> new PostNotFoundException("post not found by this post ID : " + postId));
@@ -163,7 +166,11 @@ public class PostServiceImpl implements PostService {
 
 	@Override
 	@Transactional
-	@CacheEvict(value = "deletePost", key = "#postId")
+	@Caching(evict = {
+        	@CacheEvict(value = "postById", key = "#postId"),
+        	@CacheEvict(value = "allPosts", key = "'all'"),
+        	@CacheEvict(value = "postLikeCount", key = "#postId")
+	})
 	public String deletePost(Long postId, Authentication authentication) {
 		Post existedPost = postRepostiory.findById(postId)
 				.orElseThrow(() -> new PostNotFoundException("post not found by this post ID : " + postId));
@@ -200,7 +207,10 @@ public class PostServiceImpl implements PostService {
 	}
 
 	@Override
-	@CachePut(value = "updatePostStatus", key = "#postId+'-'+#status")
+	@Caching(evict = {
+        	@CacheEvict(value = "postById", key = "#postId"),
+        	@CacheEvict(value = "allPosts", key = "'all'")
+	})
 	public String updatePostStatus(Long postId, String status, Authentication authentication) {
 		Post post = postRepostiory.findById(postId)
 				.orElseThrow(() -> new PostNotFoundException("post not found by this post ID : " + postId));
@@ -250,8 +260,10 @@ public class PostServiceImpl implements PostService {
 	}
 
 	@Override
-	@Caching(evict = { @CacheEvict(value = "postLikeCount", key = "#postId"),
-			@CacheEvict(value = "postById", key = "#postId") })
+	@Caching(evict = { 
+		@CacheEvict(value = "postLikeCount", key = "#postId"),
+		@CacheEvict(value = "postById", key = "#postId") 
+	})
 	public Post addLike(Long postId, PostLike likes, Authentication authentication) {
 		Post post = postRepostiory.findById(postId)
 				.orElseThrow(() -> new PostNotFoundException("Post not found by this post ID : " + postId));
@@ -296,6 +308,7 @@ public class PostServiceImpl implements PostService {
 		return all;
 	}
 
+	@Cacheable(value = "AllPostsOfUser", key = "#authorId")
 	@Override
 	public List<Post> findAllByAuthorId(Long authorId) {
 		List<Post> posts = postRepostiory.findAllByAuthorId(authorId);
@@ -309,8 +322,11 @@ public class PostServiceImpl implements PostService {
 
 	@Override
 	@Transactional
-	@Caching(evict = { @CacheEvict(value = "postById", key = "#postId"),
-			@CacheEvict(value = "postList", allEntries = true), @CacheEvict(value = "postLikeCount", key = "#postId") })
+	@Caching(evict = { 
+		@CacheEvict(value = "postById", key = "#postId"),
+		@CacheEvict(value = "postList", allEntries = true), 
+		@CacheEvict(value = "postLikeCount", key = "#postId") 
+	})
 	public void deleteAllPostByUserId(Long userId) {
 		postRepostiory.deleteAllByauthorId(userId);
 
