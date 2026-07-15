@@ -20,7 +20,7 @@ import type { Post, PostStatus } from "@/types";
 const POST_ADMIN_ROLES = ["SUPER_ADMIN", "ADMIN"];
 const POST_STATUS_OPTIONS: PostStatus[] = ["DRAFT", "REVIEW", "PUBLISHED", "ARCHIVED", "DELETED"];
 
-export function PostsPage() {
+export function PostViewPage() {
   const { user } = useAuth();
   const isAdmin = !!user && POST_ADMIN_ROLES.includes(user.role);
 
