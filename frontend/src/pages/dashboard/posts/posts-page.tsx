@@ -11,18 +11,23 @@ import {
 } from "@/components/ui/overlays";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/overlays";
-import { usePosts, useDeletePost, useUpdatePostStatus } from "@/hooks/use-posts";
+import { usePosts, useAllPosts, useDeletePost, useUpdatePostStatus } from "@/hooks/use-posts";
 import { useAuth } from "@/contexts/auth-context";
 import { ROUTES, POST_STATUS_META } from "@/constants";
 import { formatDate } from "@/lib/utils";
 import type { Post, PostStatus } from "@/types";
 
 const POST_ADMIN_ROLES = ["SUPER_ADMIN", "ADMIN"];
+// Only these roles have POST_CREATE on the backend (see Post-Service's Role.java) —
+// READER and GUEST can never own a post, so "your own posts" is permanently empty
+// for them. They browse every post on the platform here instead.
+const POST_AUTHOR_ROLES = ["SUPER_ADMIN", "ADMIN", "EDITOR", "AUTHOR"];
 const POST_STATUS_OPTIONS: PostStatus[] = ["DRAFT", "REVIEW", "PUBLISHED", "ARCHIVED", "DELETED"];
 
 export function PostsPage() {
   const { user } = useAuth();
   const isAdmin = !!user && POST_ADMIN_ROLES.includes(user.role);
+  const canAuthor = !!user && POST_AUTHOR_ROLES.includes(user.role);
 
   const deletePost = useDeletePost();
   const updateStatus = useUpdatePostStatus();
@@ -35,10 +40,16 @@ export function PostsPage() {
   const [status, setStatus] = useState<string>("ALL");
   const [pendingDelete, setPendingDelete] = useState<Post | null>(null);
 
-  // This page always shows only the signed-in user's own posts — regardless
-  // of role. SUPER_ADMIN/ADMIN don't see other authors' posts here; that
-  // cross-user view lives in the dedicated Admin Panel instead.
-  const { data: posts, isLoading, isError, error, refetch } = usePosts();
+  // Roles that can author content (AUTHOR/EDITOR/ADMIN/SUPER_ADMIN) manage only
+  // their own posts here — cross-user management for admins lives in the
+  // dedicated Admin Panel instead. Roles that can't author anything (READER,
+  // GUEST) browse every post in the database instead, via the same open
+  // GET /api/v1/posts endpoint the topbar search relies on — otherwise this
+  // page (and the global search bar, which always routes here) is permanently
+  // empty for every reader, regardless of what they search for.
+  const ownPosts = usePosts();
+  const allPosts = useAllPosts();
+  const { data: posts, isLoading, isError, error, refetch } = canAuthor ? ownPosts : allPosts;
 
   const filtered = useMemo(() => {
     return (posts ?? []).filter((p) => {
@@ -69,7 +80,7 @@ export function PostsPage() {
       header: "Status",
       render: (p) => {
         const meta = POST_STATUS_META[p.status];
-        if (!isAdmin) {
+        if (!isAdmin || !canAuthor) {
           return <Badge className={meta?.className}>{meta?.label ?? p.status}</Badge>;
         }
         return (
@@ -129,20 +140,24 @@ export function PostsPage() {
                 <Eye className="h-3.5 w-3.5" /> View
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link to={ROUTES.postEdit(p.postId)}>
-                <Pencil className="h-3.5 w-3.5" /> Edit
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-danger hover:text-danger"
-              onSelect={(e) => {
-                e.preventDefault();
-                setPendingDelete(p);
-              }}
-            >
-              <Trash2 className="h-3.5 w-3.5" /> Delete
-            </DropdownMenuItem>
+            {canAuthor && (
+              <>
+                <DropdownMenuItem asChild>
+                  <Link to={ROUTES.postEdit(p.postId)}>
+                    <Pencil className="h-3.5 w-3.5" /> Edit
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-danger hover:text-danger"
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setPendingDelete(p);
+                  }}
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Delete
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       ),
@@ -156,14 +171,20 @@ export function PostsPage() {
           <div>
             <h1 className="text-2xl font-semibold">Posts</h1>
             <p className="mt-1 text-sm text-text-secondary">
-              {isAdmin ? "Manage your own posts — change status inline." : "Create, publish, and manage your posts."}
+              {canAuthor
+                ? isAdmin
+                  ? "Manage your own posts — change status inline."
+                  : "Create, publish, and manage your posts."
+                : "Browse every post on the platform."}
             </p>
           </div>
-          <Button asChild>
-            <Link to={ROUTES.postNew}>
-              <Plus className="h-4 w-4" /> New post
-            </Link>
-          </Button>
+          {canAuthor && (
+            <Button asChild>
+              <Link to={ROUTES.postNew}>
+                <Plus className="h-4 w-4" /> New post
+              </Link>
+            </Button>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -191,13 +212,15 @@ export function PostsPage() {
           <EmptyState
             icon={<FileText className="h-5 w-5" />}
             title="No posts found"
-            description="Try a different search, or create your first post."
+            description={canAuthor ? "Try a different search, or create your first post." : "Try a different search — nothing published yet matches."}
             action={
-              <Button asChild size="sm">
-                <Link to={ROUTES.postNew}>
-                  <Plus className="h-4 w-4" /> New post
-                </Link>
-              </Button>
+              canAuthor ? (
+                <Button asChild size="sm">
+                  <Link to={ROUTES.postNew}>
+                    <Plus className="h-4 w-4" /> New post
+                  </Link>
+                </Button>
+              ) : undefined
             }
           />
         ) : (

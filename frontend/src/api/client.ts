@@ -4,8 +4,7 @@ import type { ApiError } from "@/types";
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  headers: { "Content-Type": "application/json" },
-  timeout: 15000,
+  headers: { "Content-Type": "application/json" }
 });
 
 // ── Request interceptor — attach JWT ────────────────────────────────────────

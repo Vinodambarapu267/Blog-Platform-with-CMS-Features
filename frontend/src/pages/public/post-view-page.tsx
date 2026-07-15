@@ -15,6 +15,17 @@ import { useAuth } from "@/contexts/auth-context";
 import { ROUTES, POST_STATUS_META } from "@/constants";
 import { formatDate, formatDateTime } from "@/lib/utils";
 
+// This is the ONLY place a reader (logged in or not) can open a post: GET
+// /api/v1/posts/{postId} and GET /api/v1/comments/posts/{postId}/comments are
+// both public endpoints on the backend (see Api-Gateway RouteValidator +
+// each service's own SecurityConfig permitAll rules) — they never required a
+// login. Living behind /dashboard/posts/:id/edit inside <ProtectedRoute> meant
+// every click on a post bounced straight to /login. This page lives outside
+// the protected dashboard shell, so viewing a post never requires a session.
+// Commenting (COMMENT_CREATE) and liking (POST_LIKE) still need to be signed
+// in — that part actually is enforced by the backend — so those two actions
+// are gated client-side with a "sign in" prompt instead of firing a request
+// that's guaranteed to fail.
 export function PostViewPage() {
   const params = useParams();
   const postId = Number(params.id);
@@ -28,15 +39,23 @@ export function PostViewPage() {
 
   const [commentText, setCommentText] = useState("");
 
-  const visibleComments = (comments ?? []).filter(
-    (c) => c.status === "APPROVED" || (currentUser && c.authorId === currentUser.userId)
-  );
+  // New comments default to PENDING on the backend (Comment.status = PENDING) and
+  // only become visible to the public once a moderator approves them. Filtering
+  // to APPROVED-only meant a visitor's own just-posted comment vanished — it was
+  // saved fine, the list did refetch, it was just invisible, which looked
+  // identical to "comments aren't updating." Show it back to its own author
+  // (with a pending note) while still hiding other people's un-approved ones.
+ const visibleComments = (comments ?? []).filter(
+  (c) => c.status === "APPROVED" || (currentUser && c.authorId === currentUser.userId)
+);
   const approvedComments = (comments ?? []).filter((c) => c.status === "APPROVED");
   const isOwner = Boolean(currentUser && post && currentUser.userId === post.authorId);
   const statusMeta = post ? POST_STATUS_META[post.status] : null;
 
   const handleLike = () => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) {
+      return;
+    }
     toggleLike.mutate(postId);
   };
 
@@ -128,6 +147,7 @@ export function PostViewPage() {
               </div>
             </article>
 
+            {/* Comments */}
             <section className="mt-10">
               <h2 className="font-display text-xl font-semibold text-text-primary">Comments</h2>
 
