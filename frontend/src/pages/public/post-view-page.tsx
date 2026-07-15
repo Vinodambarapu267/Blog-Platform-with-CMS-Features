@@ -1,238 +1,199 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { Plus, Search, MoreHorizontal, Pencil, Trash2, Eye, Heart, FileText } from "lucide-react";
-import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import { useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Heart, MessageSquare, Eye, Pencil, ArrowLeft, LogIn } from "lucide-react";
+import { PublicLayout } from "@/components/layout/public-layout";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge, EmptyState, ErrorState } from "@/components/ui/misc";
-import { DataTable, type Column } from "@/components/ui/data-table";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
-} from "@/components/ui/overlays";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/overlays";
-import { usePosts, useDeletePost, useUpdatePostStatus } from "@/hooks/use-posts";
+import { Textarea } from "@/components/ui/input";
+import { Badge, Avatar, Skeleton, EmptyState, ErrorState } from "@/components/ui/misc";
+import { usePost, useToggleLike } from "@/hooks/use-posts";
+import { useComments, useCreateComment } from "@/hooks/use-comments";
+import { useCurrentUser } from "@/hooks/use-users";
 import { useAuth } from "@/contexts/auth-context";
 import { ROUTES, POST_STATUS_META } from "@/constants";
-import { formatDate } from "@/lib/utils";
-import type { Post, PostStatus } from "@/types";
+import { formatDate, formatDateTime } from "@/lib/utils";
 
-const POST_ADMIN_ROLES = ["SUPER_ADMIN", "ADMIN"];
-const POST_STATUS_OPTIONS: PostStatus[] = ["DRAFT", "REVIEW", "PUBLISHED", "ARCHIVED", "DELETED"];
+export function PostViewPage() {
+  const params = useParams();
+  const postId = Number(params.id);
+  const { isAuthenticated } = useAuth();
+  const { data: currentUser } = useCurrentUser();
 
-export function PostsPage() {
-  const { user } = useAuth();
-  const isAdmin = !!user && POST_ADMIN_ROLES.includes(user.role);
+  const { data: post, isLoading: postLoading, isError: postError, error: postErrorObj } = usePost(postId);
+  const { data: comments, isLoading: commentsLoading } = useComments(postId);
+  const toggleLike = useToggleLike();
+  const createComment = useCreateComment(postId);
 
-  const deletePost = useDeletePost();
-  const updateStatus = useUpdatePostStatus();
-  const [searchParams] = useSearchParams();
-  // Prefills from the topbar's global search (?q=...) so that search actually goes somewhere.
-  const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
-  // The useState initializer above only runs on first mount. If you're already on
-  // /dashboard/posts and search again from the topbar, the URL's ?q= changes but this
-  // component doesn't remount — so without this effect the box would silently ignore it.
-  useEffect(() => {
-    const q = searchParams.get("q");
-    if (q !== null) setSearch(q);
-  }, [searchParams]);
-  const [status, setStatus] = useState<string>("ALL");
-  const [pendingDelete, setPendingDelete] = useState<Post | null>(null);
+  const [commentText, setCommentText] = useState("");
 
-  // This page always shows only the signed-in user's own posts — regardless
-  // of role. SUPER_ADMIN/ADMIN don't see other authors' posts here; that
-  // cross-user view lives in the dedicated Admin Panel instead, so it's a
-  // deliberate, separate destination rather than something this page slips
-  // into automatically.
-  const { data: posts, isLoading, isError, error, refetch } = usePosts();
+  const visibleComments = (comments ?? []).filter(
+    (c) => c.status === "APPROVED" || (currentUser && c.authorId === currentUser.userId)
+  );
+  const approvedComments = (comments ?? []).filter((c) => c.status === "APPROVED");
+  const isOwner = Boolean(currentUser && post && currentUser.userId === post.authorId);
+  const statusMeta = post ? POST_STATUS_META[post.status] : null;
 
-  const filtered = useMemo(() => {
-    return (posts ?? []).filter((p) => {
-      const matchesSearch = p.title.toLowerCase().includes(search.toLowerCase());
-      const matchesStatus = status === "ALL" || p.status === status;
-      return matchesSearch && matchesStatus;
-    });
-  }, [posts, search, status]);
+  const handleLike = () => {
+    if (!isAuthenticated) return;
+    toggleLike.mutate(postId);
+  };
 
-  const columns: Column<Post>[] = [
-    {
-      key: "title",
-      header: "Title",
-      render: (p) => (
-        <div className="flex items-center gap-3">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/5 text-text-muted">
-            <FileText className="h-3.5 w-3.5" />
-          </span>
-          <div className="min-w-0">
-            <p className="max-w-xs truncate font-medium">{p.title}</p>
-            <p className="max-w-xs truncate text-xs text-text-muted">/{p.slug}</p>
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: "status",
-      header: "Status",
-      render: (p) => {
-        const meta = POST_STATUS_META[p.status];
-        // Admins get a live status changer right in the table; everyone
-        // else just sees the read-only badge, same as before.
-        if (!isAdmin) {
-          return <Badge className={meta?.className}>{meta?.label ?? p.status}</Badge>;
-        }
-        return (
-          <Select
-            value={p.status}
-            onValueChange={(value) => updateStatus.mutate({ id: p.postId, status: value as PostStatus })}
-          >
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {POST_STATUS_OPTIONS.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {POST_STATUS_META[s]?.label ?? s}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        );
-      },
-    },
-    {
-      key: "views",
-      header: "Views",
-      render: (p) => (
-        <span className="flex items-center gap-1.5 text-text-secondary">
-          <Eye className="h-3.5 w-3.5" /> {p.viewCount ?? 0}
-        </span>
-      ),
-    },
-    {
-      key: "likes",
-      header: "Likes",
-      render: (p) => (
-        <span className="flex items-center gap-1.5 text-text-secondary">
-          <Heart className="h-3.5 w-3.5" /> {p.likeCount ?? 0}
-        </span>
-      ),
-    },
-    {
-      key: "created",
-      header: "Created",
-      render: (p) => <span className="text-text-secondary">{formatDate(p.createdAt)}</span>,
-    },
-    {
-      key: "actions",
-      header: "",
-      className: "w-10",
-      render: (p) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted hover:bg-white/10 hover:text-text-primary">
-            <MoreHorizontal className="h-4 w-4" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem asChild>
-              <Link to={ROUTES.postView(p.postId)}>
-                <Eye className="h-3.5 w-3.5" /> View
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link to={ROUTES.postEdit(p.postId)}>
-                <Pencil className="h-3.5 w-3.5" /> Edit
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-danger hover:text-danger"
-              onSelect={(e) => {
-                e.preventDefault();
-                setPendingDelete(p);
-              }}
-            >
-              <Trash2 className="h-3.5 w-3.5" /> Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
-    },
-  ];
+  const handleSubmitComment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentText.trim()) return;
+    createComment.mutate(
+      { content: commentText.trim() },
+      { onSuccess: () => setCommentText("") }
+    );
+  };
 
   return (
-    <DashboardLayout>
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold">Posts</h1>
-            <p className="mt-1 text-sm text-text-secondary">
-              {isAdmin ? "Manage your own posts — change status inline." : "Create, publish, and manage your posts."}
-            </p>
-          </div>
-          <Button asChild>
-            <Link to={ROUTES.postNew}>
-              <Plus className="h-4 w-4" /> New post
-            </Link>
-          </Button>
-        </div>
+    <PublicLayout>
+      <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+        <Link to={ROUTES.home} className="inline-flex items-center gap-1.5 text-sm text-text-secondary transition-colors hover:text-text-primary">
+          <ArrowLeft className="h-3.5 w-3.5" /> Back home
+        </Link>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative max-w-xs flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search posts…" className="pl-9" />
+        {postLoading ? (
+          <div className="mt-6 space-y-4">
+            <Skeleton className="h-9 w-2/3" />
+            <Skeleton className="h-5 w-1/3" />
+            <Skeleton className="h-64 w-full" />
           </div>
-          <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger className="w-44">
-              <SelectValue placeholder="Filter status" />
-            </SelectTrigger>
-            <SelectContent>
-              {["ALL", "PUBLISHED", "DRAFT", "REVIEW", "ARCHIVED", "DELETED"].map((s) => (
-                <SelectItem key={s} value={s}>
-                  {s === "ALL" ? "All statuses" : POST_STATUS_META[s]?.label ?? s}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {isError ? (
-          <ErrorState message={error instanceof Error ? error.message : "Failed to load posts"} onRetry={() => refetch()} />
-        ) : !isLoading && filtered.length === 0 ? (
-          <EmptyState
-            icon={<FileText className="h-5 w-5" />}
-            title="No posts found"
-            description="Try a different search, or create your first post."
-            action={
-              <Button asChild size="sm">
-                <Link to={ROUTES.postNew}>
-                  <Plus className="h-4 w-4" /> New post
-                </Link>
-              </Button>
-            }
-          />
+        ) : postError || !post ? (
+          <div className="mt-6">
+            <ErrorState message={postErrorObj instanceof Error ? postErrorObj.message : "This post couldn't be found."} />
+          </div>
         ) : (
-          <DataTable columns={columns} data={filtered} rowKey={(p) => p.postId} isLoading={isLoading} />
+          <>
+            <article className="mt-6">
+              <div className="flex flex-wrap items-center gap-2">
+                {statusMeta && <Badge className={statusMeta.className}>{statusMeta.label}</Badge>}
+                {post.categoryName && <Badge className="border-white/10 text-text-secondary">{post.categoryName}</Badge>}
+              </div>
+
+              <h1 className="font-display mt-3 text-3xl font-semibold text-text-primary sm:text-4xl">{post.title}</h1>
+
+              <div className="mt-4 flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2.5">
+                  <Avatar name={post.authorName ?? `Author #${post.authorId}`} size={36} />
+                  <div>
+                    <p className="text-sm font-medium text-text-primary">{post.authorName ?? `Author #${post.authorId}`}</p>
+                    <p className="text-xs text-text-muted">{formatDate(post.publishedAt ?? post.createdAt)}</p>
+                  </div>
+                </div>
+                <span className="flex items-center gap-1 text-xs text-text-muted">
+                  <Eye className="h-3.5 w-3.5" /> {post.viewCount ?? 0} views
+                </span>
+                {isOwner && (
+                  <Button asChild variant="secondary" size="sm" className="ml-auto">
+                    <Link to={ROUTES.postEdit(post.postId)}>
+                      <Pencil className="h-3.5 w-3.5" /> Edit post
+                    </Link>
+                  </Button>
+                )}
+              </div>
+
+              {post.excerpt && (
+                <p className="mt-5 border-l-2 border-primary/40 pl-4 text-text-secondary">{post.excerpt}</p>
+              )}
+
+              <div className="prose prose-invert mt-6 max-w-none prose-headings:font-display prose-a:text-primary-light">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{post.content}</ReactMarkdown>
+              </div>
+
+              <div className="mt-8 flex items-center gap-3 border-t border-white/10 pt-6">
+                <Button
+                  variant={isAuthenticated ? "secondary" : "outline"}
+                  loading={toggleLike.isPending}
+                  onClick={handleLike}
+                  title={isAuthenticated ? "Like this post" : "Sign in to like this post"}
+                >
+                  <Heart className={`h-4 w-4 ${toggleLike.isSuccess ? "fill-danger text-danger" : ""}`} />
+                  {post.likeCount ?? 0}
+                </Button>
+                <span className="flex items-center gap-1.5 text-sm text-text-secondary">
+                  <MessageSquare className="h-4 w-4" /> {approvedComments.length} comments
+                </span>
+                {!isAuthenticated && (
+                  <Link
+                    to={ROUTES.login}
+                    className="ml-auto flex items-center gap-1.5 text-sm text-primary-light hover:underline"
+                  >
+                    <LogIn className="h-3.5 w-3.5" /> Sign in to like or comment
+                  </Link>
+                )}
+              </div>
+            </article>
+
+            <section className="mt-10">
+              <h2 className="font-display text-xl font-semibold text-text-primary">Comments</h2>
+
+              {isAuthenticated ? (
+                <form onSubmit={handleSubmitComment} className="mt-4 flex flex-col gap-2.5">
+                  <Textarea
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    placeholder="Share your thoughts…"
+                    rows={3}
+                  />
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs text-text-muted">New comments are held for moderation before other readers can see them.</p>
+                    <Button type="submit" size="sm" loading={createComment.isPending} disabled={!commentText.trim()}>
+                      Post comment
+                    </Button>
+                  </div>
+                </form>
+              ) : (
+                <Card className="mt-4">
+                  <CardContent className="flex items-center justify-between gap-4 p-4">
+                    <p className="text-sm text-text-secondary">Sign in to join the discussion.</p>
+                    <Button asChild size="sm" variant="secondary">
+                      <Link to={ROUTES.login}>Sign in</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              <div className="mt-6 space-y-3">
+                {commentsLoading ? (
+                  Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-2xl" />)
+                ) : visibleComments.length === 0 ? (
+                  <EmptyState
+                    icon={<MessageSquare className="h-5 w-5" />}
+                    title="No comments yet"
+                    description="Be the first to share what you think."
+                  />
+                ) : (
+                  visibleComments.map((comment) => (
+                    <Card key={comment.commentId}>
+                      <CardContent className="flex gap-3 p-4">
+                        <Avatar name={comment.authorName ?? `User ${comment.authorId}`} size={32} />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-sm font-medium text-text-primary">
+                              {comment.authorName ?? `User #${comment.authorId}`}
+                            </p>
+                            <span className="text-xs text-text-muted">{formatDateTime(comment.createdAt)}</span>
+                            {comment.status !== "APPROVED" && (
+                              <Badge className="border-warning/30 bg-warning/15 text-warning">
+                                {comment.status === "PENDING" ? "Pending approval — only visible to you" : "Rejected"}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="mt-1.5 text-sm text-text-secondary">{comment.content}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </section>
+          </>
         )}
       </div>
-
-      <Dialog open={!!pendingDelete} onOpenChange={(open) => !open && setPendingDelete(null)}>
-        {pendingDelete && (
-          <DialogContent title="Delete this post?" description={`"${pendingDelete.title}" will be permanently removed.`}>
-            <div className="flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setPendingDelete(null)}>
-                Cancel
-              </Button>
-              <Button
-                variant="danger"
-                loading={deletePost.isPending}
-                onClick={() => {
-                  deletePost.mutate(pendingDelete.postId, { onSuccess: () => setPendingDelete(null) });
-                }}
-              >
-                <Trash2 className="h-4 w-4" /> Delete
-              </Button>
-            </div>
-          </DialogContent>
-        )}
-      </Dialog>
-    </DashboardLayout>
+    </PublicLayout>
   );
 }

@@ -8,19 +8,19 @@ export const commentKeys = {
   all: () => ["comments", "all"] as const,
 };
 
-export function useComments(postId: number) {
+export function useComments(postId: number, enabled = true) {
   return useQuery({
     queryKey: commentKeys.forPost(postId),
     queryFn: () => commentsApi.listForPost(postId),
-    enabled: Number.isFinite(postId),
-   
+    enabled: enabled && Number.isFinite(postId),
   });
 }
 
-export function useAllComments() {
+export function useAllComments(enabled = true) {
   return useQuery({
     queryKey: commentKeys.all(),
     queryFn: () => commentsApi.listAll(),
+    enabled,
   });
 }
 
@@ -41,7 +41,7 @@ export function useModerateComment() {
   return useMutation({
     mutationFn: ({ id, status }: { id: number; status: Exclude<CommentStatus, "DELETED"> }) =>
       commentsApi.updateStatus(id, status),
-   onMutate: async ({ id, status }) => {
+    onMutate: async ({ id, status }) => {
       await qc.cancelQueries({ queryKey: ["comments"] });
       const previous = qc.getQueriesData<Comment[]>({ queryKey: ["comments"] });
       qc.setQueriesData<Comment[]>({ queryKey: ["comments"] }, (old) =>
@@ -54,7 +54,7 @@ export function useModerateComment() {
       toast.error(err.message);
     },
     onSuccess: () => {
-    toast.success("Comment moderated");
+      toast.success("Comment moderated");
     },
   });
 }
