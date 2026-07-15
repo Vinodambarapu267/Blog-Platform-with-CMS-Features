@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Tags as TagsIcon, Plus, X, TrendingUp } from "lucide-react";
+import {  MessageSquare,Plus, X, TrendingUp, TagIcon } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,7 @@ export function TagsPage() {
   // Creating/deleting tags is an admin-only action — normal users (
   // AUTHOR, READER, etc.) can browse tags but shouldn't get the write UI.
   const canManageTags = !!user && TAG_MANAGE_ROLES.includes(user.role);
-
+// Tags page always shows all tags, no filtering by post
   const { data: tags, isLoading, isError, error, refetch } = useTags();
   const { data: popular } = usePopularTags();
   const autoCreate = useAutoCreateTags();
@@ -61,14 +61,18 @@ export function TagsPage() {
 
           <TabsContent value="all" className="mt-4">
             {isError ? (
-              <ErrorState message={error instanceof Error ? error.message : "Failed to load tags"} onRetry={() => refetch()} />
-            ) : isLoading ? (
-              <div className="flex flex-wrap gap-2">
-                {Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-8 w-24 rounded-full" />)}
-              </div>
-            ) : (tags ?? []).length === 0 ? (
-              <EmptyState icon={<TagsIcon className="h-5 w-5" />} title="No tags yet" description="Tags will appear here once posts start using them." />
-            ) : (
+          <ErrorState message={error instanceof Error ? error.message : "Failed to load comments"} onRetry={() => refetch()} />
+        ) : isLoading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 w-full rounded-2xl" />)}
+          </div>
+        ) : (TagIcon ?? []).length === 0 ? (
+          <EmptyState
+            icon={<MessageSquare className="h-5 w-5" />}
+            title="No tags available"
+            description="Tags will show up here as readers add them."
+          />
+        ): (
               <div className="flex flex-wrap gap-2">
                 {(tags ?? []).map((tag) => (
                   <Badge key={tag.tagId} className="gap-2 border-white/10 bg-white/5 py-1.5 pl-3 pr-2 text-text-secondary">

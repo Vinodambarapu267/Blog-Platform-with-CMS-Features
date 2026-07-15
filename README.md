@@ -1,34 +1,146 @@
-# MallivinTech - Blog Platform with CMS Features
+# AureaCMS — Blog Platform with CMS Features
 
 [![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://www.oracle.com/java/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.x-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Spring Cloud](https://img.shields.io/badge/Spring%20Cloud-2025.0.1-blue.svg)](https://spring.io/projects/spring-cloud)
-[![Build](https://img.shields.io/badge/Build-Maven-red.svg)](https://maven.apache.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB.svg)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-8-646CFF.svg)](https://vite.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6.svg)](https://www.typescriptlang.org/)
 [![Database](https://img.shields.io/badge/Database-MySQL-blue.svg)](https://www.mysql.com/)
 
-Modern Spring Boot microservices platform for blog publishing, CMS category and tag management, user profiles, JWT authentication, comments, likes, email notifications, and event-driven service communication.
+A full-stack blog / CMS platform: a Spring Boot microservices backend (auth, users, posts, categories & tags, comments, notifications, gateway, service discovery) paired with a React + TypeScript dashboard and public blog frontend.
 
-## Project Overview
+```
+Blog-Platform-with-CMS-Features/
+├── Api-Gateway/               ← Spring Cloud Gateway, JWT filter, routing       :8089
+├── Eureka-server/             ← Service registry                                :8761
+├── Auth-service/              ← Login, JWT issue/validate                       :8081
+├── User-Service/              ← User profiles, roles, status                    :8082
+├── Post-Service/              ← Posts, publishing workflow, likes               :8083
+├── Categories-&-Tag-service/  ← Category tree, tag auto-create/resolve          :8084
+├── Comment-service/           ← Comments, moderation                            :8085
+├── Notification-service/      ← Kafka-driven email notifications                :8088
+└── frontend/                  ← React 19 + Vite dashboard & public site         :5173
+```
 
-Blog Platform with CMS Features is a backend-only microservices system for building a content publishing platform. It separates authentication, users, posts, comments, categories/tags, notifications, service discovery, and API routing into independent Spring Boot services.
+## Table of Contents
 
-The system supports:
+- [Prerequisites](#prerequisites)
+- [Quickstart](#quickstart)
+- [Architecture](#architecture)
+- [Backend](#backend)
+  - [Services](#services)
+  - [Technology Stack](#backend-technology-stack)
+  - [Feature Matrix](#feature-matrix)
+  - [API Routes](#api-routes)
+  - [Database Design](#database-design)
+  - [Configuration](#backend-configuration)
+  - [Running the Backend](#running-the-backend)
+- [Frontend](#frontend)
+  - [Technology Stack](#frontend-technology-stack)
+  - [Project Structure](#frontend-project-structure)
+  - [Routes & Roles](#routes--roles)
+  - [Auth Flow](#auth-flow)
+  - [API Layer](#api-layer)
+  - [Configuration](#frontend-configuration)
+  - [Running the Frontend](#running-the-frontend)
+- [Running the Full Stack Locally](#running-the-full-stack-locally)
+- [Sample API Requests](#sample-api-requests)
+- [Error Handling & Status Codes](#error-handling--status-codes)
+- [Troubleshooting](#troubleshooting)
+- [Known Quirks](#known-quirks)
+- [Testing](#testing)
+- [Deployment Notes](#deployment-notes)
+- [Future Enhancements](#future-enhancements)
+- [Contributing](#contributing)
+- [License](#license)
 
-- User registration, profile management, status management, and role assignment
-- Authentication with JWT token generation and validation
-- Role and permission based access control using Spring Security
-- Blog post creation, updates, publishing workflow, deletion, and likes
-- Category hierarchy management and tag resolution
-- Comment creation, update, deletion, moderation, and post-linked retrieval
-- Kafka-driven propagation of user, post, and comment events
-- Redis-backed caching for common reads and updates
-- Eureka service discovery and Spring Cloud Gateway routing
+## Prerequisites
 
-## Services
+Install and have running before you touch either half of the stack:
+
+| Tool | Version used in this project | Check with |
+| --- | --- | --- |
+| Java (JDK) | 21 | `java -version` |
+| Maven | not required globally — each service ships `mvnw`/`mvnw.cmd` | — |
+| Node.js | 18+ (frontend uses Vite 8 / TS 6, which want a recent Node) | `node -v` |
+| npm | 9+ | `npm -v` |
+| MySQL | 8.x | `mysql --version` |
+| Redis | 6+ | `redis-cli ping` → `PONG` |
+| Apache Kafka | 3.x (with Zookeeper, or KRaft mode) | `kafka-topics.sh --version` |
+
+You don't need Docker to run this locally — every backend service also ships a `Dockerfile` and `docker-compose.yml` if you'd rather containerize instead of running `mvnw` by hand, but the instructions below assume the plain local-process route since that's what this project was actually developed and tested against.
+
+Create the database once before starting any JPA-backed service (each service will create/update its own tables via `ddl-auto=update`, but the schema itself has to exist first):
+
+```sql
+CREATE DATABASE blogs_db;
+```
+
+## Quickstart
+
+The fastest path from a clean checkout to a working login screen:
+
+```bash
+# 1. infra
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS blogs_db;"
+redis-server &
+# start Kafka + Zookeeper however you normally do (kafka-server-start.sh / KRaft)
+
+# 2. backend — one terminal tab per service, in this order
+cd Eureka-server               && .\mvnw spring-boot:run &
+sleep 20   # give Eureka a head start before anything tries to register with it
+cd Auth-service                 && infisical run -- .\mvnw spring-boot:run &
+cd User-Service                  && infisical run -- .\mvnw spring-boot:run &
+cd Post-Service                   && infisical run -- .\mvnw spring-boot:run &
+cd "Categories-&-Tag-service"      && infisical run -- .\mvnw spring-boot:run &
+cd Comment-service                  && infisical run -- .\mvnw spring-boot:run &
+cd Notification-service              && .\mvnw spring-boot:run &
+cd Api-Gateway                        && .\mvnw spring-boot:run &
+
+# 3. sanity check — every service should show up here before you touch the frontend
+open http://localhost:8761
+
+# 4. frontend
+cd frontend
+npm install
+cp .env.example .env
+npm run dev
+```
+
+Then open `http://localhost:5173`, hit **Register**, create an account, and log in. If step 3 doesn't show all 7 client services registered, don't bother starting the frontend yet — you'll just get "cannot reach the server" or 401s that have nothing to do with the frontend code.
+
+On Windows, run the `.cmd` variant of each command (`mvnw.cmd spring-boot:run`) in separate PowerShell windows instead of backgrounding with `&`.
+
+## Architecture
+
+```text
+Browser (React app, :5173)
+  |
+  v
+Api-Gateway :8089  ──── validates JWT on protected routes ────
+  |-- /api/v1/auth/**       -> Auth-service :8081
+  |-- /api/v1/users/**      -> User-Service :8082
+  |-- /api/v1/posts/**      -> Post-Service :8083
+  |-- /api/v1/categories/** -> Categories-&-Tag-service :8084
+  |-- /api/v1/tags/**       -> Categories-&-Tag-service :8084
+  |-- /api/v1/comments/**   -> Comment-service :8085
+
+Eureka-server :8761   registers and discovers every service above.
+Kafka                 distributes user, post, and comment events to Notification-service.
+Redis                 caches frequently read resources (posts, categories, tags, users).
+MySQL                 backs every service's own schema in blogs_db.
+```
+
+The frontend never talks to individual services directly — every request goes through the gateway at `http://localhost:8089`, which forwards to the right service via Eureka and applies JWT validation on protected routes.
+
+## Backend
+
+### Services
 
 | Service | Purpose | Port | Application Name |
 | --- | --- | ---: | --- |
-| `Api-Gateway` | Public gateway and JWT validation filter | `8089` | `Api-Gateway` |
+| `Api-Gateway` | Public gateway, route forwarding, JWT validation filter | `8089` | `Api-Gateway` |
 | `Eureka-server` | Service registry | `8761` | `Eureka-server` |
 | `Auth-service` | Login, token generation, token validation, credential storage | `8081` | `Auth-service` |
 | `User-Service` | User profile lifecycle and user events | `8082` | `users-service` |
@@ -37,25 +149,7 @@ The system supports:
 | `Comment-service` | Comments, moderation, post-comment cleanup | `8085` | `Comment-service` |
 | `Notification-service` | Email notifications from Kafka events | `8088` | `Notification-service` |
 
-## Feature Matrix
-
-| Area | Features |
-| --- | --- |
-| Authentication | Login by email, token generation by username/password, JWT validation, BCrypt password checks |
-| Authorization | Stateless Spring Security, method-level `@PreAuthorize`, role-to-permission mapping |
-| User Management | Create user, update current profile, find by username/id, list users, delete user, update user status |
-| Blog Posts | Create, update, delete, update status, read by id, like/unlike, like count |
-| Publishing Workflow | `PUBLISHED`, `ARCHIVED`, `REVIEW`, `DRAFT`, `DELETED` post states with permission checks |
-| CMS Categories | Create, update, delete, validate, list with paging and sorting, parent/child categories |
-| Tags | Auto-resolve/create tags, list all tags, popular tags, delete tag |
-| Comments | Add comment, update comment, delete comment, list by post, moderate status |
-| Notifications | Kafka consumers for user, post, and comment events; SMTP email sending |
-| Caching | Redis cache configuration across user, post, category, tag, comment, auth services |
-| Service Discovery | Eureka server and Eureka clients |
-| API Gateway | Route forwarding and secured-route JWT validation |
-| Rate Limiting | Resilience4j rate limiter on selected user, post, category, tag, and comment operations |
-
-## Technology Stack
+### Backend Technology Stack
 
 | Layer | Technology |
 | --- | --- |
@@ -64,794 +158,392 @@ The system supports:
 | Cloud Runtime | Spring Cloud 2025.0.1 |
 | API Gateway | Spring Cloud Gateway |
 | Service Discovery | Netflix Eureka |
-| Web | Spring Web, Spring WebFlux in gateway |
-| Security | Spring Security, JWT with `jjwt` 0.11.5 |
+| Security | Spring Security, JWT (`jjwt` 0.11.5) |
 | Persistence | Spring Data JPA, Hibernate |
 | Database | MySQL |
 | Cache | Redis via Spring Data Redis |
 | Messaging | Apache Kafka via Spring Kafka |
 | Inter-Service Calls | OpenFeign |
-| Resilience | Resilience4j rate limiting / circuit breaker dependency |
-| Email | Spring Boot Mail, Gmail SMTP configuration |
+| Resilience | Resilience4j rate limiting |
+| Email | Spring Boot Mail, Gmail SMTP |
 | Build Tool | Maven wrapper per service |
 | Boilerplate Reduction | Lombok |
-| Testing | Spring Boot Test, Spring Security Test, Spring Kafka Test |
 
-## Architecture
+### Feature Matrix
 
-```text
-Blog-Platform-with-CMS-Features
-├── Api-Gateway
-│   └── filter, util
-├── Eureka-server
-│   └── service registry
-├── Auth-service
-│   └── config, controller, dto, entity, exception, kafka, repository, service
-├── User-Service
-│   └── config, controller, dto, entity, exception, kafka, repository, security, service, utility
-├── Post-Service
-│   └── controller, dto, entity, exception, feignclients, kafka, repository, security, service, utility
-├── Categories-&-Tag-service
-│   └── controller, dto, entity, exception, repository, security, service, utility
-├── Comment-service
-│   └── controller, dto, entity, exception, feignclients, kafka, repository, security, service, utility
-├── Notification-service
-│   └── dto, emailService, feignclients, kafka, utility
-└── service-specific Maven projects
-```
+| Area | Features |
+| --- | --- |
+| Authentication | Login by email, token generation, JWT validation, BCrypt password checks |
+| Authorization | Stateless Spring Security, method-level `@PreAuthorize`, role-to-permission mapping |
+| User Management | Create user, update current profile, find by username/id, list users, delete user, update status |
+| Blog Posts | Create, update, delete, update status, read by id, list all posts, list by author, like/unlike, like count |
+| Publishing Workflow | `PUBLISHED`, `ARCHIVED`, `REVIEW`, `DRAFT`, `DELETED` post states with permission checks |
+| CMS Categories | Create, update, delete, validate, list with paging and sorting, parent/child categories |
+| Tags | Auto-resolve/create tags, list all tags, popular tags, delete tag |
+| Comments | Add comment, update comment, delete comment, list by post, moderate status |
+| Notifications | Kafka consumers for user, post, and comment events; SMTP email sending |
+| Caching | Redis cache configuration across user, post, category, tag, comment, auth services |
+| Service Discovery | Eureka server and Eureka clients |
+| Rate Limiting | Resilience4j rate limiter on user, post, category, tag, and comment operations |
 
-### Runtime Flow
+### API Routes
 
-```text
-Client
-  |
-  v
-Api-Gateway :8089
-  |-- /api/v1/auth/**       -> Auth-service :8081
-  |-- /api/v1/users/**      -> User-Service :8082
-  |-- /api/v1/posts/**      -> Post-Service :8083
-  |-- /api/v1/categories/** -> Categories-&-Tag-service :8084
-  |-- /api/v1/tags/**       -> Categories-&-Tag-service :8084
-  |-- /api/v1/comments/**   -> Comment-service :8085
+All routes below are reached through the gateway at `http://localhost:8089`. Routes marked **open** don't require a JWT.
 
-Eureka-server :8761 registers and discovers services.
-Kafka distributes user, post, and comment events.
-Redis caches frequently accessed resources.
-MySQL stores service data in blogs_db.
-```
+| Method | Path | Service | Notes |
+| --- | --- | --- | --- |
+| POST | `/api/v1/auth/login` | Auth-service | Login by email + password, returns JWT |
+| POST | `/api/v1/auth/token` | Auth-service | Token generation by username/password |
+| GET | `/api/v1/auth/validate` | Auth-service | Token validation |
+| POST | `/api/v1/users/createuser` | User-Service | **Open** — registration |
+| PUT | `/api/v1/users/me` | User-Service | Update current profile |
+| GET | `/api/v1/users/findbyname/{username}` | User-Service | |
+| GET | `/api/v1/users/{userId}` | User-Service | |
+| GET | `/api/v1/users` | User-Service | List all users |
+| PATCH | `/api/v1/users/{userId}/status` | User-Service | Update user status |
+| DELETE | `/api/v1/users/{userId}` | User-Service | |
+| GET | `/api/v1/posts` | Post-Service | **Open** — every post on the platform |
+| GET | `/api/v1/posts/{postId}` | Post-Service | **Open** — single post |
+| GET | `/api/v1/posts/findpostsbyuserid/{userId}` | Post-Service | Posts by author |
+| POST | `/api/v1/posts` | Post-Service | Create post |
+| PUT | `/api/v1/posts/{postId}` | Post-Service | Update post |
+| PATCH | `/api/v1/posts/{postId}/status` | Post-Service | Publish/archive/review/draft |
+| DELETE | `/api/v1/posts/{postId}` | Post-Service | |
+| POST | `/api/v1/posts/{postId}/like` | Post-Service | Toggle like |
+| GET | `/api/v1/posts/{postId}/likes` | Post-Service | Like count |
+| GET | `/api/v1/categories` | Categories-&-Tag-service | List, paged/sorted |
+| POST | `/api/v1/categories` | Categories-&-Tag-service | Create |
+| PUT | `/api/v1/categories/{id}` | Categories-&-Tag-service | Update |
+| DELETE | `/api/v1/categories/{id}` | Categories-&-Tag-service | |
+| GET | `/api/v1/tags` | Categories-&-Tag-service | List all tags |
+| GET | `/api/v1/tags/popular` | Categories-&-Tag-service | Popular tags |
+| POST | `/api/v1/tags` | Categories-&-Tag-service | Auto-create/resolve tags |
+| DELETE | `/api/v1/tags/{id}` | Categories-&-Tag-service | |
+| GET | `/api/v1/comments/posts/{postId}/comments` | Comment-service | **Open** — comments on a post |
+| POST | `/api/v1/comments` | Comment-service | Add comment |
+| PUT | `/api/v1/comments/{id}` | Comment-service | Update comment |
+| PATCH | `/api/v1/comments/{id}/status` | Comment-service | Moderate |
+| DELETE | `/api/v1/comments/{id}` | Comment-service | |
 
-## Database Design
-
-The services use MySQL with `spring.jpa.hibernate.ddl-auto=update`.
-
-### UserCredential
-
-Auth-service entity mapped to table `Users`.
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| `id` | `Long` | Primary key |
-| `username` | `String` | Login identity used for token subject |
-| `email` | `String` | Login lookup for `/login` |
-| `password` | `String` | BCrypt encoded when received from Kafka user events |
-| `role` | `String` | Role claim written into JWT |
-| `isActive` | `boolean` | Defaults to `true` |
-| `is_email_verified` | `boolean` | Email verification flag |
-| `createdAt` | `LocalDateTime` | Hibernate creation timestamp |
-| `updatedAt` | `LocalDateTime` | Hibernate update timestamp |
-
-### User
-
-User-Service entity mapped to table `users_profiles`.
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| `userId` | `Long` | Primary key |
-| `username` | `String` | Unique lookup is enforced in service logic |
-| `displayName` | `String` | Public display name |
-| `bio` | `String` | Profile biography |
-| `socialLinks` | `Map<String, String>` | Element collection in `user_social_links` |
-| `status` | `UserStatus` | `ACTIVE`, `INACTIVE`, `SUSPENDED`, `BLOCKED` |
-| `email` | `String` | User email |
-| `password` | `String` | Published to auth service through Kafka |
-| `createdAt` | `LocalDateTime` | Hibernate creation timestamp |
-| `updatedAt` | `LocalDateTime` | Hibernate update timestamp |
-| `role` | `UserRole` | Role used for auth event payloads |
-| `postIds` | `List<Long>` | Element collection in `user_post_ids` |
-
-Relationships:
-
-- One user profile stores many post IDs through `user_post_ids`.
-- User registration, update, and deletion publish Kafka events consumed by Auth-service.
-
-### Post
-
-Post-Service entity mapped to table `posts`.
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| `postId` | `Long` | Primary key |
-| `title` | `String` | Required |
-| `slug` | `String` | Required and unique |
-| `content` | `String` | Required |
-| `excerpt` | `String` | Optional |
-| `status` | `PostStatus` | Defaults to `PUBLISHED` |
-| `authorId` | `Long` | Required, resolved from user service |
-| `categoryId` | `Long` | Optional |
-| `viewCount` | `Integer` | View counter |
-| `likeCount` | `Integer` | Like counter |
-| `publishedAt` | `LocalDateTime` | Creation timestamp |
-| `createdAt` | `LocalDateTime` | Creation timestamp |
-| `updatedAt` | `LocalDateTime` | Update timestamp |
-
-### PostLike
-
-Post-Service entity mapped to table `post_like`.
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| `likeId` | `Long` | Primary key |
-| `post` | `Post` | Many-to-one relation to post |
-| `userId` | `Long` | User who liked the post |
-| `createdAt` | `Instant` | Creation timestamp |
-
-Relationship:
-
-- Many `PostLike` records belong to one `Post`.
-
-### Category
-
-Categories-&-Tag-service entity mapped to table `categories`.
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| `categoryId` | `Long` | Primary key |
-| `categoryName` | `String` | Category name |
-| `categorySlug` | `String` | Unique slug |
-| `description` | `String` | Category description |
-| `parent` | `Category` | Optional parent category |
-| `children` | `List<Category>` | Child categories |
-
-Relationship:
-
-- One category can have one parent and many children.
-
-### Tag
-
-Categories-&-Tag-service entity mapped to table `tag`.
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| `tagId` | `Long` | Primary key |
-| `tagName` | `String` | Unique tag name |
-| `tagSlug` | `String` | Unique tag slug |
-| `postCount` | `int` | Used for popular tag ordering |
-
-### PostTagRef
-
-Categories-&-Tag-service entity mapped to table `post_tag_refs`.
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| `id` | `PostTagRefId` | Embedded id for post/tag reference |
-
-### Comment
-
-Comment-service entity mapped to table `comments`.
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| `commentId` | `Long` | Primary key |
-| `postId` | `Long` | Associated post id |
-| `authorId` | `Long` | Author user id |
-| `parentId` | `Long` | Parent comment id |
-| `content` | `String` | Required comment text |
-| `status` | `CommentStatus` | Defaults to `PENDING` |
-| `createdAt` | `Instant` | Creation timestamp |
-| `updatedAt` | `Instant` | Update timestamp |
-
-## API Documentation
-
-All routes are available through the gateway on `http://localhost:8089` when the gateway and downstream services are running.
-
-### Authentication
-
-#### POST `/api/v1/auth/token`
-
-Generates a JWT from username and password through Spring Security authentication.
-
-Request:
+Every non-open response is wrapped as:
 
 ```json
-{
-  "username": "vinod",
-  "password": "password"
-}
+{ "statuscode": 200, "status": "SUCCESS", "message": "...", "data": {}, "list": [] }
 ```
 
-Response:
+`data` holds a single object; `list` holds arrays — the two are mutually exclusive per response depending on which constructor overload the controller happens to call.
 
-```text
-jwt-token
-```
+### Database Design
 
-#### POST `/api/v1/auth/login`
+MySQL, `spring.jpa.hibernate.ddl-auto=update`. Key entities:
 
-Logs in by email and password, then returns a JWT.
+| Entity | Service | Table | Notes |
+| --- | --- | --- | --- |
+| `UserCredential` | Auth-service | `Users` | Login identity, BCrypt password, role claim for JWT |
+| `User` | User-Service | `users_profiles` | Display name, bio, social links, status, role, post IDs |
+| `Post` | Post-Service | `posts` | Title, slug, content, status, author/category IDs, view/like counts |
+| `PostLike` | Post-Service | `post_like` | Many-to-one to `Post` |
+| `Category` | Categories-&-Tag-service | `categories` | Parent/child hierarchy |
+| `Tag` | Categories-&-Tag-service | `tags` | Auto-resolved on write, usage count |
+| `Comment` | Comment-service | `comments` | Linked to post ID, moderation status |
 
-Request:
+User, post, and comment writes publish Kafka events that Auth-service and Notification-service consume (credential sync and email dispatch respectively).
 
-```json
-{
-  "email": "user@example.com",
-  "password": "password"
-}
-```
+### Backend Configuration
 
-Response:
-
-```text
-jwt-token
-```
-
-#### GET `/api/v1/auth/validate?token={token}`
-
-Validates a JWT.
-
-Response:
-
-```text
-Token is valid
-```
-
-### Users
-
-#### POST `/api/v1/users/createuser`
-
-Creates a user profile and publishes a `user-registered` Kafka event for credential creation.
-
-Request:
-
-```json
-{
-  "username": "vinod",
-  "displayName": "Vinod",
-  "bio": "Java developer",
-  "socialLinks": {
-    "github": "https://github.com/example"
-  },
-  "email": "user@example.com",
-  "password": "password",
-  "role": "AUTHOR"
-}
-```
-
-#### PUT `/api/v1/users/updateuser/me`
-
-Updates the currently authenticated user's profile.
-
-Authorization: Bearer token required.
-
-#### GET `/api/v1/users/findbyname/{username}`
-
-Finds a user by username.
-
-#### GET `/api/v1/users/{userId}`
-
-Finds a user by id.
-
-Required authority: `USER_READ`.
-
-#### GET `/api/v1/users`
-
-Returns all users.
-
-#### PUT `/api/v1/users/updateStatus?username={username}&status={status}`
-
-Updates a user's status.
-
-Required authority: `USER_UPDATE`.
-
-Supported status values:
-
-- `ACTIVE`
-- `INACTIVE`
-- `SUSPENDED`
-- `BLOCKED`
-
-#### DELETE `/api/v1/users/deleteuser/{username}`
-
-Deletes a user and publishes a `user-deleted` Kafka event.
-
-Required authority: `USER_DELETE`.
-
-### Posts
-
-#### POST `/api/v1/posts/createpost`
-
-Creates a post for the authenticated user.
-
-Required authority: `POST_CREATE`.
-
-Request:
-
-```json
-{
-  "title": "My First Blog",
-  "slug": "my-first-blog",
-  "content": "Full article content",
-  "excerpt": "Short summary",
-  "categoryId": 1
-}
-```
-
-#### PUT `/api/v1/posts/updatepost/{id}`
-
-Updates a post.
-
-Required authority: `POST_UPDATE_OWN`.
-
-#### PUT `/api/v1/posts/updatestatus/{id}?status={status}`
-
-Updates post workflow status.
-
-Authorization: authenticated user required. Fine-grained permission checks run in service code.
-
-Supported status values:
-
-- `PUBLISHED`
-- `ARCHIVED`
-- `REVIEW`
-- `DRAFT`
-- `DELETED`
-
-#### DELETE `/api/v1/posts/{id}`
-
-Deletes a post.
-
-Required authority: `POST_DELETE_ANY` or `POST_DELETE_OWN`.
-
-#### POST `/api/v1/posts/{id}/like`
-
-Toggles a like for the authenticated user.
-
-Required authority: `POST_LIKE`.
-
-#### GET `/api/v1/posts/{postId}`
-
-Returns a post by id.
-
-#### GET `/api/v1/posts/{id}/likes`
-
-Returns total likes for a post.
-
-Required authority: `POST_LIKES`.
-
-### Categories
-
-#### POST `/api/v1/categories/createcategory`
-
-Creates a category.
-
-Required authority: `CATEGORY_CREATE`.
-
-Request:
-
-```json
-{
-  "categoryName": "Spring Boot",
-  "categorySlug": "spring-boot",
-  "description": "Spring Boot articles",
-  "parentId": null
-}
-```
-
-#### PUT `/api/v1/categories/updateCategory/{categoryId}`
-
-Updates a category.
-
-Required authority: `CATEGORY_UPDATE`.
-
-#### GET `/api/v1/categories?page={page}&sortBy={field}`
-
-Returns paged categories sorted by the provided field.
-
-#### GET `/api/v1/categories/{category-id}/validate`
-
-Validates that a category exists.
-
-Rate limited by `myRateLimiter`.
-
-#### DELETE `/api/v1/categories/deletebyid/{id}`
-
-Deletes a category.
-
-Required authority: `CATEGORY_DELETE`.
-
-### Tags
-
-#### POST `/api/v1/tags/autocreate`
-
-Normalizes, resolves, and creates missing tags.
-
-Authorization: authenticated user required.
-
-Request:
-
-```json
-{
-  "names": ["spring", "java", "cms"]
-}
-```
-
-Validation:
-
-- `names` must not be null
-- `names` must contain between 1 and 50 items
-
-#### GET `/api/v1/tags`
-
-Returns all tags.
-
-#### GET `/api/v1/tags/popular?page=0&size=20`
-
-Returns tags ordered by `postCount` descending.
-
-#### DELETE `/api/v1/tags/delete/{tag-id}`
-
-Deletes a tag.
-
-Required authority: `TAG_DELETE`.
-
-### Comments
-
-#### POST `/api/v1/comments/posts/{postId}/comments`
-
-Adds a comment to a post.
-
-Required authority: `COMMENT_CREATE`.
-
-Request:
-
-```json
-{
-  "parentId": 0,
-  "content": "Great article!"
-}
-```
-
-#### GET `/api/v1/comments/posts/{postId}/comments`
-
-Returns comments for a post.
-
-#### PUT `/api/v1/comments/posts/{id}/comments`
-
-Updates a comment.
-
-Required authority: `COMMENT_UPDATE_ANY` or `COMMENT_UPDATE_OWN`.
-
-#### PATCH `/api/v1/comments/{id}/status?status={status}`
-
-Updates comment moderation status.
-
-Required authority: `COMMENT_MODERATE`.
-
-#### DELETE `/api/v1/comments/{id}`
-
-Deletes a comment.
-
-Required authority: `COMMENT_DELETE_ANY` or `COMMENT_DELETE_OWN`.
-
-## Authentication and Security
-
-### JWT Flow
-
-```text
-1. User profile is created in User-Service.
-2. User-Service publishes a user-registered Kafka event.
-3. Auth-service consumes the event and stores BCrypt-encoded credentials.
-4. Client calls /api/v1/auth/login or /api/v1/auth/token.
-5. Auth-service issues a JWT with:
-   - subject: username
-   - claim: role
-   - expiration: 1 hour
-6. Client sends Authorization: Bearer <token>.
-7. Api-Gateway validates the token before forwarding secured routes.
-8. Downstream services read username and role from JWT, expand role permissions, and enforce @PreAuthorize rules.
-```
-
-### Roles
-
-Roles are defined in service-local `Role` enums:
-
-- `SUPER_ADMIN`
-- `ADMIN`
-- `EDITOR`
-- `AUTHOR`
-- `READER`
-- `GUEST`
-
-### Permission Groups
-
-Permission enums include:
-
-- User permissions: `USER_READ`, `USER_CREATE`, `USER_UPDATE`, `USER_DELETE`, `USER_MANAGE_ROLES`
-- Role permissions: `ROLE_READ`, `ROLE_CREATE`, `ROLE_UPDATE`, `ROLE_DELETE`
-- Category permissions: `CATEGORY_READ`, `CATEGORY_CREATE`, `CATEGORY_UPDATE`, `CATEGORY_DELETE`
-- Tag permissions: `TAG_READ`, `TAG_CREATE`, `TAG_UPDATE`, `TAG_DELETE`
-- Post permissions: `POST_READ`, `POST_READ_OWN_DRAFTS`, `POST_READ_ALL`, `POST_CREATE`, `POST_UPDATE_OWN`, `POST_UPDATE_ANY`, `POST_DELETE_OWN`, `POST_DELETE_ANY`, `POST_SUBMIT_DRAFT`, `POST_APPROVE`, `POST_REJECT`, `POST_PUBLISH`, `POST_UNPUBLISH`, `POST_LIKE`, `POST_LIKES`
-- Comment permissions: `COMMENT_READ`, `COMMENT_CREATE`, `COMMENT_UPDATE_OWN`, `COMMENT_UPDATE_ANY`, `COMMENT_DELETE_OWN`, `COMMENT_DELETE_ANY`, `COMMENT_MODERATE`
-- Profile and system permissions: `PROFILE_UPDATE_OWN`, `PROFILE_UPDATE_ANY`, `CONTENT_SEARCH`, `SYSTEM_CONFIG_READ`, `SYSTEM_CONFIG_UPDATE`, `SYSTEM_MAINTENANCE`
-
-### Gateway Open Routes
-
-The gateway treats selected GET routes as open when they match configured patterns:
-
-- `/api/v1/auth/**`
-- `/api/v1/users/*`
-- `/api/v1/users/*/posts`
-- `/api/v1/posts`
-- `/api/v1/posts/*`
-- `/api/v1/categories/**`
-- `/api/v1/tags/**`
-- `/api/v1/comments/posts/*/comments`
-
-Other secured gateway routes require an `Authorization` header with a `Bearer` token.
-
-## Kafka Events
-
-| Producer | Topic | Consumer / Effect |
-| --- | --- | --- |
-| User-Service | `user-registered` | Auth-service creates credentials |
-| User-Service | `user-updated` | Auth-service updates credentials |
-| User-Service | `user-deleted` | User deletion event published |
-| Post-Service | `post-published` | User-Service adds post id to author profile |
-| Post-Service | `post-updated` | Notification-service can consume post update events |
-| Post-Service | `post-deleted` | Comment-service deletes comments for deleted post |
-| Comment-service | `comment-created` | Notification-service can consume comment creation events |
-| Comment-service | `comment-moderated` | Notification-service can consume moderation events |
-
-Kafka broker configuration points to:
+Each service's `src/main/resources/application.properties` needs (values are examples):
 
 ```properties
-spring.kafka.bootstrap-servers=localhost:9092
-```
-
-## Getting Started
-
-### Prerequisites
-
-- Java 21
-- Maven or the included Maven wrappers
-- MySQL running locally
-- Redis running locally on port `6379`
-- Kafka running locally on port `9092`
-- Eureka-server running before client services
-
-### Clone Repository
-
-```bash
-git clone https://github.com/Vinodambarapu267/Blog-Platform-with-CMS-Features.git
-cd Blog-Platform-with-CMS-Features
-```
-
-### Create Database
-
-The services are configured for one MySQL database:
-
-```sql
-CREATE DATABASE blogs_db;
-```
-
-### Configure Application Properties
-
-Each service has its own `src/main/resources/application.properties`.
-
-The repository currently contains local defaults such as:
-
-```properties
+server.port=<service-port>
 spring.datasource.url=jdbc:mysql://localhost:3306/blogs_db
 spring.datasource.username=root
-spring.datasource.password=vinod267
+spring.datasource.password=<your-password>
+spring.jpa.hibernate.ddl-auto=update
 spring.data.redis.host=localhost
 spring.data.redis.port=6379
 spring.kafka.bootstrap-servers=localhost:9092
 eureka.client.service-url.defaultZone=http://localhost:8761/eureka/
+jwt.secret.key=<JWT_SECRET_KEY>
+resilience4j.ratelimiter.instances.myRateLimiter.limitForPeriod=30
+resilience4j.ratelimiter.instances.myRateLimiter.limitRefreshPeriod=10s
+resilience4j.ratelimiter.instances.myRateLimiter.timeoutDuration=0s
 ```
 
-For production or shared development, move secrets and environment-specific values into environment variables or externalized configuration.
+Notification-service additionally needs `spring.mail.*` SMTP settings. For production, move all of the above into environment variables rather than committing them.
 
-### Start Order
+> **Rate limiter note:** `limitForPeriod` is shared across every caller of that service instance, not per-user, and `timeoutDuration=0s` means anything over the limit is rejected instantly rather than queued. `30` per 10s comfortably covers normal single-developer/browser usage; raise it further if you're load-testing or running multiple concurrent users.
 
-Start infrastructure first:
+### Running the Backend
+
+Start infrastructure first, then services in this order:
 
 1. MySQL
 2. Redis
 3. Kafka
-4. Eureka-server
-5. Auth-service
-6. User-Service
-7. Post-Service
-8. Categories-&-Tag-service
-9. Comment-service
-10. Notification-service
-11. Api-Gateway
+4. `Eureka-server`
+5. `Auth-service`
+6. `User-Service`
+7. `Post-Service`
+8. `Categories-&-Tag-service`
+9. `Comment-service`
+10. `Notification-service`
+11. `Api-Gateway`
 
-### Run Services Locally
-
-Each service is an independent Maven project. From each service directory:
-
-```bash
-./mvnw spring-boot:run
-```
-
-On Windows:
-
-```bash
-mvnw.cmd spring-boot:run
-```
-
-Example:
+Each service is an independent Maven project:
 
 ```bash
 cd Eureka-server
-mvnw.cmd spring-boot:run
+.\mvnw spring-boot:run      # mvnw.cmd on Windows
 
-cd ..\Auth-service
-mvnw.cmd spring-boot:run
+cd ../Auth-service
+nfisical run -- .\mvnw spring-boot:run
+# ...repeat for each remaining service
 ```
 
-## Build for Production
-
-Build each service from its directory:
+Build a deployable JAR per service:
 
 ```bash
-mvnw.cmd clean package
+.\mvnw clean package
 ```
 
-The packaged JAR will be generated under the service's `target` directory.
+## Frontend
 
-## Testing
+### Frontend Technology Stack
 
-Each service includes a Spring Boot context test under `src/test/java`.
-
-Run tests per service:
-
-```bash
-mvnw.cmd test
-```
-
-Test dependencies present in the repository include:
-
-- `spring-boot-starter-test`
-- `spring-security-test` in auth/user services
-- `spring-kafka-test` in Kafka-enabled services
-- `reactor-test` in the gateway
-
-## API Testing
-
-Swagger/OpenAPI configuration was not found in the repository.
-
-Use the gateway base URL for manual testing:
-
-```text
-http://localhost:8089
-```
-
-Authorization header format:
-
-```text
-Authorization: Bearer <jwt-token>
-```
-
-## Error Handling
-
-Services define global exception handlers for domain errors and security failures.
-
-| Service | Error Types |
+| Layer | Technology |
 | --- | --- |
-| Api-Gateway | Missing authorization header, invalid token, runtime errors |
-| Auth-service | Invalid credentials, invalid token, invalid access, user not found |
-| User-Service | User already exists, user not found, rate limit exceeded |
-| Post-Service | Post already exists, post not found, user not found, rate limit exceeded |
-| Categories-&-Tag-service | Slug exists/not found, category not found, tag not found, user not found, access denied |
-| Comment-service | Comment not found, post not found, user not found |
+| Framework | React 19 |
+| Language | TypeScript 6 |
+| Build Tool | Vite 8 |
+| Styling | Tailwind CSS 4 |
+| Routing | React Router 7 |
+| Server State | TanStack React Query 5 |
+| Forms & Validation | React Hook Form + Zod |
+| HTTP Client | Axios |
+| UI Primitives | Radix UI |
+| Icons | lucide-react |
+| Charts | Recharts |
+| Markdown | react-markdown + remark-gfm |
+| Animation | Framer Motion |
+| Toasts | react-hot-toast |
+| Lint | oxlint |
 
-Common response shapes include:
-
-```json
-{
-  "timeStamp": "2026-01-01T10:00:00",
-  "statusCode": 400,
-  "message": "Post not found",
-  "path": "uri=/api/v1/posts/99"
-}
-```
-
-Security errors may return:
-
-```json
-{
-  "statusCode": 403,
-  "status": "FAILURE",
-  "message": "You do not have permission to perform this action"
-}
-```
-
-Rate limiting returns HTTP `429` with:
+### Frontend Project Structure
 
 ```text
-Too many requests - please try again later.
+frontend/
+├── src/
+│   ├── api/            # axios calls per domain: auth, posts, comments, taxonomy, users, client.ts
+│   ├── components/
+│   │   ├── auth/        # ProtectedRoute, auth-related UI
+│   │   ├── editor/       # post editor components
+│   │   ├── layout/       # dashboard shell, header, sidebar
+│   │   └── ui/            # Radix-based design system primitives
+│   ├── constants/       # API base URL, routes map, role/status label maps
+│   ├── contexts/        # auth-context (JWT/session), theme-context
+│   ├── hooks/           # React Query hooks: use-posts, use-comments, use-taxonomy, use-users
+│   ├── lib/             # utils, zod validation schemas
+│   ├── pages/
+│   │   ├── auth/         # login, register
+│   │   ├── public/        # landing page, single-post view
+│   │   └── dashboard/     # posts, taxonomy (categories/tags), comments, users, profile, settings
+│   ├── types/           # shared TS types, ResponseMessage<T> wrapper type
+│   ├── App.tsx           # route table
+│   └── main.tsx           # entry point
+├── .env.example
+├── package.json
+├── vite.config.ts
+└── tsconfig*.json
 ```
 
-## Configuration Reference
+### Routes & Roles
 
-| Property | Used By | Description |
+| Route | Page | Access |
 | --- | --- | --- |
-| `server.port` | All runnable services | Service HTTP port |
-| `spring.application.name` | All services | Service registration/application name |
-| `spring.datasource.driver-class-name` | Auth, User, Post, Category/Tag, Comment | MySQL JDBC driver |
-| `spring.datasource.url` | Auth, User, Post, Category/Tag, Comment | MySQL connection URL |
-| `spring.datasource.username` | Auth, User, Post, Category/Tag, Comment | MySQL username |
-| `spring.datasource.password` | Auth, User, Post, Category/Tag, Comment | MySQL password |
-| `spring.jpa.hibernate.ddl-auto` | JPA services | Schema update strategy |
-| `spring.jpa.properties.hibernate.dialect` | JPA services | MySQL Hibernate dialect |
-| `spring.jpa.show-sql` | Auth, User, Post, Category/Tag | SQL logging |
-| `spring.jackson.default-property-inclusion` | User, Post, Category/Tag, Comment | Exclude null JSON fields |
-| `spring.cache.type` | Auth, User, Post, Category/Tag, Comment | Cache provider, configured as Redis |
-| `spring.cache.cache-names` | Auth, User, Post, Category/Tag, Comment | Named Redis caches |
-| `spring.data.redis.host` | Auth, User, Post, Category/Tag, Comment | Redis host |
-| `spring.data.redis.port` | Auth, User, Post, Category/Tag, Comment | Redis port |
-| `spring.kafka.bootstrap-servers` | User, Post, Comment, Notification | Kafka broker address |
-| `spring.kafka.producer.key-serializer` | User, Post, Comment | Kafka producer key serializer |
-| `spring.kafka.producer.value-serializer` | User, Post, Comment | Kafka producer JSON serializer |
-| `spring.kafka.consumer.group-id` | Auth, User, Post, Comment | Kafka consumer group |
-| `spring.kafka.consumer.auto-offset-reset` | Kafka consumers | Offset reset strategy |
-| `spring.kafka.consumer.properties.spring.json.trusted.packages` | Kafka consumers | Trusted JSON packages |
-| `eureka.client.service-url.defaultZone` | Gateway and client services | Eureka server URL |
-| `eureka.client.register-with-eureka` | Eureka and client services | Registration toggle |
-| `eureka.client.fetch-registry` | Eureka and client services | Registry fetch toggle |
-| `resilience4j.ratelimiter.instances.myRateLimiter.limitForPeriod` | User, Post, Category/Tag, Comment | Rate limit request count |
-| `resilience4j.ratelimiter.instances.myRateLimiter.limitRefreshPeriod` | User, Post, Category/Tag, Comment | Rate limit refresh window |
-| `resilience4j.ratelimiter.instances.myRateLimiter.timeoutDuration` | User, Post, Category/Tag, Comment | Rate limiter wait timeout |
-| `spring.cloud.gateway.routes[*]` | Api-Gateway | Route definitions |
-| `spring.mail.host` | Notification-service | SMTP host |
-| `spring.mail.port` | Notification-service | SMTP port |
-| `spring.mail.username` | Notification-service | SMTP username |
-| `spring.mail.password` | Notification-service | SMTP password |
-| `spring.mail.properties.mail.smtp.*` | Notification-service | SMTP auth and TLS settings |
+| `/` | Landing page | Public |
+| `/posts/:id` | Single post view | Public (backend post/comment reads are open endpoints) |
+| `/login`, `/register` | Auth pages | Public |
+| `/dashboard` | Dashboard home | Authenticated |
+| `/dashboard/posts`, `/dashboard/posts/new`, `/dashboard/posts/:id/edit` | Post management & editor | Authenticated |
+| `/dashboard/categories` | Category management | Authenticated |
+| `/dashboard/tags` | Tag management | Authenticated (create/delete gated to `SUPER_ADMIN` / `ADMIN`) |
+| `/dashboard/comments` | Comment moderation | Authenticated |
+| `/dashboard/users` | User management | Authenticated |
+| `/dashboard/profile`, `/dashboard/settings` | Account pages | Authenticated |
+
+Roles come from the JWT `role` claim and map to `SUPER_ADMIN`, `ADMIN`, `EDITOR`, `AUTHOR`, `READER`, `GUEST` (see `ROLE_LABELS` in `src/constants/index.ts`). Dashboard routes are wrapped in `<ProtectedRoute>`; individual actions inside a page (e.g. tag creation/deletion) are further gated by role.
+
+### Auth Flow
+
+1. `authApi.login` / `authApi.token` hits Auth-service through the gateway and returns a JWT.
+2. The token is stored in `localStorage` under `blogcms.token` and decoded client-side (`sub` → username, `role` claim, `exp`/`iat`) to build the in-memory `SessionUser` — no server round trip needed to know who's logged in.
+3. `apiClient` (axios) attaches `Authorization: Bearer <token>` to every request via a request interceptor.
+4. A response interceptor watches for `401` — clears the stored token and fires an `auth:logout` window event that `AuthProvider` listens for, redirecting through `ProtectedRoute` back to `/login`.
+5. There is no refresh-token endpoint on the backend; tokens are valid for 1 hour with no rotation, so sessions expire and require re-login.
+
+### API Layer
+
+`src/api/client.ts` centralizes the axios instance, base URL, JWT header injection, and error-message normalization (401 → session expired, 403 → permission denied, 429 → rate limited, network/timeout → gateway-down messaging). Each domain file (`posts.ts`, `comments.ts`, `taxonomy.ts`, `users.ts`, `auth.ts`) wraps the matching backend controller and unwraps the backend's `{ data }` / `{ list }` response shape into plain TypeScript values, since the backend's `ResponseMessage` constructor overload resolution puts arrays in `list` rather than `data`. Each function maps 1:1 to a backend endpoint — no endpoints are called that don't exist on a controller.
+
+### Frontend Configuration
+
+`.env` (copy from `.env.example`):
+
+```bash
+# Base URL of the Api-Gateway — everything routes through this.
+VITE_API_BASE_URL=http://localhost:8089
+```
+
+The gateway's CORS config (`Api-Gateway/application.properties`) whitelists `http://localhost:5173` and `http://localhost:3000` by default — update `allowedOriginPatterns` there if you serve the frontend from a different origin.
+
+### Running the Frontend
+
+```bash
+cd frontend
+npm install
+cp .env.example .env    # adjust VITE_API_BASE_URL if needed
+npm run dev              # http://localhost:5173
+```
+
+Other scripts:
+
+```bash
+npm run build      # tsc -b && vite build
+npm run preview     # preview the production build
+npm run lint          # oxlint
+```
+
+## Running the Full Stack Locally
+
+1. Start MySQL, Redis, and Kafka.
+2. Start the backend services in the order listed in [Running the Backend](#running-the-backend), ending with `Api-Gateway` on `:8089`.
+3. Confirm all services registered with Eureka at `http://localhost:8761`.
+4. `cd frontend && npm install && npm run dev`.
+5. Open `http://localhost:5173`, register a user (`POST /api/v1/users/createuser` is open), then log in.
+
+## Sample API Requests
+
+Everything goes through the gateway on `:8089`. A few real request/response pairs to sanity-check your setup without opening the frontend at all:
+
+**Register a user** (open endpoint, no token needed):
+
+```bash
+curl -X POST http://localhost:8089/api/v1/users/createuser \
+  -H "Content-Type: application/json" \
+  -d '{
+        "username": "vinod",
+        "displayName": "Vinod Ambarapu",
+        "email": "vinod@example.com",
+        "password": "ChangeMe123!",
+        "role": "AUTHOR"
+      }'
+```
+
+**Log in:**
+
+```bash
+curl -X POST http://localhost:8089/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{ "email": "vinod@example.com", "password": "ChangeMe123!" }'
+```
+
+Response (trimmed):
+
+```json
+{
+  "statuscode": 200,
+  "status": "SUCCESS",
+  "message": "Login successful",
+  "data": { "token": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ2aW5vZCIsInJvbGUiOiJBVVRIT1IiLCJpYXQiOjE3NTIzNDAwMDAsImV4cCI6MTc1MjM0MzYwMH0.xxxxx" }
+}
+```
+
+**Create a post** (needs the token from above):
+
+```bash
+curl -X POST http://localhost:8089/api/v1/posts \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+        "title": "Hello, AureaCMS",
+        "slug": "hello-aureacms",
+        "content": "First post through the API.",
+        "authorId": 1
+      }'
+```
+
+**List every post** (open endpoint — this is the one that was originally missing from the frontend's API layer, see [API Layer](#api-layer)):
+
+```bash
+curl http://localhost:8089/api/v1/posts
+```
+
+If any of these hang or return `ECONNREFUSED`, the gateway or the target service isn't up yet — check Eureka (`http://localhost:8761`) before assuming anything is wrong with your request.
+
+## Error Handling & Status Codes
+
+| Status | Meaning | Where it comes from |
+| --- | --- | --- |
+| `400` | Validation / domain error (e.g. post not found, slug exists) | Service-level `GlobalExceptionHandler` |
+| `401` | Missing/expired/invalid JWT | Gateway `AuthenticationFilter` or downstream `JwtAuthenticationFilter` |
+| `403` | Authenticated but not permitted | `@PreAuthorize` checks |
+| `429` | Rate limit exceeded (`myRateLimiter`) | Resilience4j, per service instance |
+
+Typical error body:
+
+```json
+{ "timeStamp": "2026-01-01T10:00:00", "statusCode": 400, "message": "Post not found", "path": "uri=/api/v1/posts/99" }
+```
+
+The frontend's axios response interceptor turns all of these into a single human-readable `Error` message shown via toast — see [API Layer](#api-layer).
+
+## Troubleshooting
+
+| Symptom | Likely Cause | Fix |
+| --- | --- | --- |
+| "Cannot reach the server" toast | `Api-Gateway` not running, or `VITE_API_BASE_URL` wrong | Confirm gateway is up on `:8089`, check `.env` |
+| "An error occurred during login" | Auth-service down, wrong credentials, or Eureka hasn't registered it yet | Check Auth-service logs; confirm it's registered in Eureka |
+| "Too many requests — please try again later" (429) | Resilience4j `myRateLimiter` cap hit | Raise `limitForPeriod` in the relevant service's `application.properties` and restart it (see [Backend Configuration](#backend-configuration)) |
+| CORS error in browser console | Frontend origin not in gateway's `allowedOriginPatterns` | Add your origin to `Api-Gateway/application.properties` |
+| 401 right after login / immediate logout | Clock skew between client and Auth-service (JWT `exp` check) or wrong `jwt.secret.key` across services | Sync system clocks; ensure every service shares the same `jwt.secret.key` |
+| `TS2339: Property 'X' does not exist on type ... post-view-page` (or similar for any lazy-loaded page) | The named export in the page file doesn't match what `App.tsx`'s `lazy(() => import(...).then((m) => ({ default: m.X })))` expects — usually from a rename or a switch to `export default` | Open the page file and confirm it uses `export function X()` matching the name referenced in `App.tsx`, or update the `App.tsx` import to match whatever it's actually called |
+| `npm install` / `npm run dev` fails with path-related errors on Windows | Project checked out under a path with spaces (e.g. `OneDrive\Desktop\my folder\...`) | Works most of the time, but if you hit path-length or quoting issues, move the checkout to a short, space-free path like `C:\dev\blog-platform` |
+| Frontend builds locally but 404s on every API call once deployed | `VITE_API_BASE_URL` was baked in at build time pointing at `localhost` | Set the env var before running `npm run build` for the target environment — Vite inlines `import.meta.env.*` at build time, not at runtime |
+
+## Known Quirks
+
+Things about this codebase that look like bugs on first read but are actually deliberate/known:
+
+- **Backend responses split between `data` and `list`.** `ResponseMessage` has overloaded constructors — pass a single object and it lands in `data`, pass a `List<?>` and Java picks the list overload, landing it in `list` instead. Every frontend `api/*.ts` file unwraps whichever one applies rather than assuming `data` always has the payload.
+- **The rate limiter is per service instance, not per user.** `resilience4j.ratelimiter.instances.myRateLimiter` is a shared bucket — one busy browser tab can 429 every other user hitting that service in the same window. See [Backend Configuration](#backend-configuration) if the default feels too tight for your usage pattern.
+- **No refresh tokens.** JWTs are valid for exactly 1 hour from `iat`, with no rotation endpoint on Auth-service. Long editing sessions can get logged out mid-task — this is current backend behavior, not a frontend timeout bug.
+- **`GET /api/v1/posts` is public/open**, unlike almost every other posts endpoint, which requires a JWT. It's explicitly whitelisted in the gateway's `RouteValidator` alongside `GET /api/v1/posts/{id}`.
+- **`src/api/users.ts.tmp` in the frontend is dead code** — an identical leftover copy of `users.ts` that nothing imports. Safe to delete; kept out of this cleanup only because it wasn't part of the requested scope.
+
 
 ## Deployment Notes
 
-Docker files were not found in the repository, so deployment is currently Maven/JAR based.
-
-Recommended production hardening:
-
-- Externalize database, Redis, Kafka, JWT secret, and SMTP credentials.
-- Use a secrets manager or environment variables instead of committing secrets.
-- Run MySQL, Redis, Kafka, and Eureka as managed services or separately supervised processes.
-- Package every microservice with `mvnw.cmd clean package`.
-- Start services in the same order documented above.
-- Place the gateway behind the public load balancer and keep internal services private.
+- Dockerfile + `docker-compose.yml` exist per backend service — review and adapt them for your infrastructure (registry, secrets, networking) before using them as-is.
+- Externalize database, Redis, Kafka, JWT secret, and SMTP credentials via environment variables — none of these should be committed.
+- Put the gateway behind a public load balancer; keep every other backend service private/internal.
+- Build the frontend for production with `npm run build` and serve the `dist/` output from a static host or CDN, pointing `VITE_API_BASE_URL` at your production gateway URL.
 
 ## Future Enhancements
 
-- Add a root Maven parent or aggregator build for easier multi-service builds.
-- Add Dockerfiles and Docker Compose for local infrastructure and service orchestration.
-- Add OpenAPI/Swagger documentation for generated endpoint docs.
-- Move hard-coded JWT and SMTP credentials into environment variables.
-- Add integration tests for Kafka event flows and gateway route authentication.
-- Add database migration tooling such as Flyway or Liquibase.
-- Standardize package names and service naming conventions.
-- Add centralized logging, tracing, and metrics dashboards.
+- Add a root Maven parent/aggregator build for the backend.
+- Add OpenAPI/Swagger documentation.
+- Add a refresh-token flow so sessions outlive the current 1-hour JWT.
+- Add database migration tooling (Flyway/Liquibase).
+- Add end-to-end tests spanning frontend + gateway + services.
+- Centralized logging, tracing, and metrics.
 
 ## Contributing
 
 1. Fork the repository.
 2. Create a feature branch.
-3. Keep changes scoped to the relevant service.
+3. Keep backend changes scoped to the relevant service, and frontend changes scoped to `frontend/`.
 4. Add or update tests for behavior changes.
-5. Run `mvnw.cmd test` in the changed service.
+5. Run `./mvnw test` (changed backend services) and `npx tsc -b --noEmit` (frontend) before opening a PR.
 6. Open a pull request with a clear description, testing notes, and any configuration changes.
 
 ## License
