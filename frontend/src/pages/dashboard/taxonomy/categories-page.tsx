@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState ,useMemo} from "react";
 import { useForm } from "react-hook-form";
 import { FolderTree, Pencil, Trash2, MoreHorizontal } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
@@ -7,6 +7,7 @@ import { Input, Label } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState, ErrorState, Skeleton } from "@/components/ui/misc";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useAllPosts } from "@/hooks/use-posts";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/overlays";
@@ -27,7 +28,14 @@ export function CategoriesPage() {
   const createCategory = useCreateCategory();
   const updateCategory = useUpdateCategory();
   const deleteCategory = useDeleteCategory();
-
+const { data: allPosts } = useAllPosts();
+const postCountByCategory = useMemo(() => {
+  const map = new Map<number, number>();
+  (allPosts ?? []).forEach((p) => {
+    if (p.categoryId != null) map.set(p.categoryId, (map.get(p.categoryId) ?? 0) + 1);
+  });
+  return map;
+}, [allPosts]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Category | null>(null);
 
@@ -107,7 +115,7 @@ export function CategoriesPage() {
                   {category.description && (
                     <p className="mt-3 line-clamp-2 text-sm text-text-secondary">{category.description}</p>
                   )}
-                  <p className="mt-3 text-xs text-text-muted">{category.postCount ?? 0} posts</p>
+                  <p className="mt-3 text-xs text-text-muted">{postCountByCategory.get(category.categoryId) ?? 0} posts</p>
                 </CardContent>
               </Card>
             ))}
