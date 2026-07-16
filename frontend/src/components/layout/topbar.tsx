@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Bell, Search, LogOut, Settings, UserCircle, Command } from "lucide-react";
+import {  Search, LogOut, Settings, UserCircle, Command } from "lucide-react";
 import { Avatar } from "@/components/ui/misc";
 import {
   DropdownMenu,
@@ -40,10 +40,6 @@ export function Topbar() {
       </form>
 
       <div className="ml-auto flex items-center gap-2">
-        <button className="relative flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-white/5 hover:text-text-primary">
-          <Bell className="h-4 w-4" />
-          <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-accent" />
-        </button>
 
         <DropdownMenu>
           <DropdownMenuTrigger className="flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 transition-colors hover:bg-white/5 focus:outline-none">
