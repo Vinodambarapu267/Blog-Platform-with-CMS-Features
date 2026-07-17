@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { ROUTES, POST_STATUS_META } from "@/constants";
 import { formatDate } from "@/lib/utils";
 import type { Post, PostStatus } from "@/types";
+import { useCurrentUser } from "@/hooks/use-users";
 
 const POST_ADMIN_ROLES = ["SUPER_ADMIN", "ADMIN"];
 // Only these roles have POST_CREATE on the backend (see Post-Service's Role.java) —
@@ -28,8 +29,9 @@ export function PostsPage() {
   const { user } = useAuth();
   const isAdmin = !!user && POST_ADMIN_ROLES.includes(user.role);
   const canAuthor = !!user && POST_AUTHOR_ROLES.includes(user.role);
-
   const deletePost = useDeletePost();
+  const currentUser = useCurrentUser();
+  const loggedInUserId  = currentUser.data?.userId;
   const updateStatus = useUpdatePostStatus();
   const [searchParams] = useSearchParams();
   const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
@@ -49,7 +51,7 @@ export function PostsPage() {
   // empty for every reader, regardless of what they search for.
   const ownPosts = usePosts();
   const allPosts = useAllPosts();
-  const { data: posts, isLoading, isError, error, refetch } = canAuthor ? ownPosts : allPosts;
+  const { data: posts, isLoading, isError, error, refetch } = canAuthor ?allPosts : ownPosts || allPosts ;
 
   const filtered = useMemo(() => {
     return (posts ?? []).filter((p) => {
@@ -126,42 +128,49 @@ export function PostsPage() {
       render: (p) => <span className="text-text-secondary">{formatDate(p.createdAt)}</span>,
     },
     {
-      key: "actions",
-      header: "",
-      className: "w-10",
-      render: (p) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted hover:bg-white/10 hover:text-text-primary">
-            <MoreHorizontal className="h-4 w-4" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem asChild>
-              <Link to={ROUTES.postView(p.postId)}>
-                <Eye className="h-3.5 w-3.5" /> View
-              </Link>
-            </DropdownMenuItem>
-            {canAuthor && (
-              <>
-                <DropdownMenuItem asChild>
-                  <Link to={ROUTES.postEdit(p.postId)}>
-                    <Pencil className="h-3.5 w-3.5" /> Edit
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="text-danger hover:text-danger"
-                  onSelect={(e) => {
-                    e.preventDefault();
-                    setPendingDelete(p);
-                  }}
-                >
-                  <Trash2 className="h-3.5 w-3.5" /> Delete
-                </DropdownMenuItem>
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
-    },
+  key: "actions",
+  header: "",
+  className: "w-10",
+  render: (p) => {
+    const isOwner = canAuthor && loggedInUserId === p.authorId;
+
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted hover:bg-white/10 hover:text-text-primary">
+          <MoreHorizontal className="h-4 w-4" />
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem asChild>
+            <Link to={ROUTES.postView(p.postId)}>
+              <Eye className="h-3.5 w-3.5" /> View
+            </Link>
+          </DropdownMenuItem>
+
+          {isOwner && (
+            <>
+              <DropdownMenuItem asChild>
+                <Link to={ROUTES.postEdit(p.postId)}>
+                  <Pencil className="h-3.5 w-3.5" /> Edit
+                </Link>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem
+                className="text-danger hover:text-danger"
+                onSelect={(e) => {
+                  e.preventDefault();
+                  setPendingDelete(p);
+                }}
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Delete
+              </DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  },
+},
   ];
 
   return (

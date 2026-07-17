@@ -53,7 +53,7 @@ export function PostViewPage() {
   const statusMeta = post ? POST_STATUS_META[post.status] : null;
 
   const handleLike = () => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated||toggleLike.isPending) {
       return;
     }
     toggleLike.mutate(postId);

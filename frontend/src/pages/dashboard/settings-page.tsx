@@ -1,14 +1,13 @@
 
-import { Moon, Sun, LogOut } from "lucide-react";
+import { Moon, Sun, LogOut, Type } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Switch } from "@/components/ui/overlays";
+import { Switch, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/overlays";
 import { Button } from "@/components/ui/button";
-import { useTheme } from "@/contexts/theme-context";
+import { useTheme, type FontStyle } from "@/contexts/theme-context";
 import { useAuth } from "@/contexts/auth-context";
-
 export function SettingsPage() {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, font, setFont } = useTheme();
   const { logout } = useAuth();
 
   return (
@@ -49,6 +48,25 @@ export function SettingsPage() {
           </CardContent>
         </Card>
       </div>
+      <div className="mt-3 flex items-center justify-between rounded-xl border border-white/10 px-4 py-3">
+              <div className="flex items-center gap-3">
+                <Type className="h-4 w-4 text-primary-light" />
+                <div>
+                  <p className="text-sm font-medium">Font style</p>
+                  <p className="text-xs text-text-muted">Choose the typeface used across the site</p>
+                </div>
+              </div>
+              <Select value={font} onValueChange={(v) => setFont(v as FontStyle)}>
+                <SelectTrigger className="w-36">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="inter">Inter</SelectItem>
+                  <SelectItem value="system">System UI</SelectItem>
+                  <SelectItem value="serif">Serif</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
     </DashboardLayout>
   );
 }

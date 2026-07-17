@@ -9,13 +9,21 @@ import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/overlays";
+import { Badge } from "@/components/ui/misc";
 import { MarkdownEditor } from "@/components/editor/markdown-editor";
 import { usePost, useCreatePost, useUpdatePost, useUpdatePostStatus, useDeletePost } from "@/hooks/use-posts";
 import { useCategories } from "@/hooks/use-taxonomy";
+import { useAuth } from "@/contexts/auth-context";
 import { slugify } from "@/lib/utils";
 import { ROUTES, POST_STATUS_META } from "@/constants";
 import type { PostStatus } from "@/types";
 import type { PostCreateBody, PostUpdateBody } from "@/api/posts";
+
+// Only these roles hold POST_PUBLISH/POST_UNPUBLISH/POST_APPROVE/POST_REJECT on the
+// backend (see Post-Service's Role.java) — everyone else (AUTHOR only has
+// POST_SUBMIT_DRAFT, READER/GUEST have none) gets a read-only status badge instead
+// of a control that would just 403 when they tried to use it.
+const STATUS_CHANGE_ROLES = ["SUPER_ADMIN", "ADMIN"];
 
 // ── Form schema ─────────────────────────────────────────────────────────────
 const postSchema = z.object({
@@ -25,8 +33,8 @@ const postSchema = z.object({
     .min(3, "At least 3 characters")
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Lowercase letters, numbers, and hyphens only"),
   excerpt: z.string().max(280).optional(),
-  content: z.string().min(20, "Write more content before saving"),
-  status: z.enum(["DRAFT", "REVIEW", "PUBLISHED", "ARCHIVED", "DELETED"]),
+  content: z.string().min(20, "Write more content before saving").max(250, "Content is too long, please keep it under 250 characters"),
+  status: z.enum(["DRAFT", "REVIEW", "PUBLISHED", "ARCHIVED", "DELETED"]).optional(),
   categoryId: z.number().optional(),
 });
 type PostFormValues = z.infer<typeof postSchema>;
@@ -43,6 +51,8 @@ export function PostEditorPage() {
   const navigate = useNavigate();
   const isEditing = Boolean(params.id);
   const postId = Number(params.id);
+  const { user } = useAuth();
+  const canChangeStatus = !!user && STATUS_CHANGE_ROLES.includes(user.role);
 
   const { data: existingPost, isLoading: postLoading } = usePost(postId);
   const { data: categoriesPage } = useCategories();
@@ -93,24 +103,29 @@ export function PostEditorPage() {
   const onSubmit = async (values: PostFormValues) => {
     try {
       if (isEditing) {
-        // updatepost expects PostDto — status is part of the body
+        // updatepost expects PostDto — status is part of the body, but only send it
+        // if this role can actually change it. Sending the unchanged existing status
+        // for everyone else keeps the payload shape correct without letting a form
+        // resubmit silently alter status as a side effect of an unrelated edit.
         const payload: PostUpdateBody = {
           title: values.title,
           slug: values.slug,
           content: values.content,
           excerpt: values.excerpt,
-          status: values.status,
+          status: canChangeStatus ? (values.status as PostStatus) : (existingPost?.status ?? "DRAFT"),
           categoryId: values.categoryId,
         };
         await updatePost.mutateAsync(payload);
       } else {
-        // createpost accepts Post entity — authorId is set from JWT by the backend
+        // createpost accepts Post entity — authorId is set from JWT by the backend.
+        // status is intentionally omitted: Post-Service's createPost never reads it
+        // from the request (the entity's field default, PUBLISHED, always wins), so
+        // sending anything here would be misleading regardless of role.
         const payload: PostCreateBody = {
           title: values.title,
           slug: values.slug,
           content: values.content,
           excerpt: values.excerpt,
-          status: values.status,
           categoryId: values.categoryId,
         };
         await createPost.mutateAsync(payload);
@@ -161,7 +176,7 @@ export function PostEditorPage() {
                 <Trash2 className="h-4 w-4" /> Delete
               </Button>
             )}
-            {isEditing && existingPost?.status !== "PUBLISHED" && (
+            {isEditing && canChangeStatus && existingPost?.status !== "PUBLISHED" && (
               <Button
                 type="button"
                 variant="secondary"
@@ -222,37 +237,51 @@ export function PostEditorPage() {
 
           {/* Right — settings sidebar */}
           <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Status</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 pt-4">
-                <div className="space-y-1.5">
-                  <Label>Post status</Label>
-                  <Controller
-                    control={control}
-                    name="status"
-                    render={({ field }) => (
-                      <Select value={field.value} onValueChange={field.onChange}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {STATUS_OPTIONS.map((opt) => (
-                            <SelectItem key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                  <p className="text-xs text-text-muted">
-                    Status is validated server-side against your role permissions.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            {isEditing && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Status</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 pt-4">
+                  {canChangeStatus ? (
+                    <div className="space-y-1.5">
+                      <Label>Post status</Label>
+                      <Controller
+                        control={control}
+                        name="status"
+                        render={({ field }) => (
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {STATUS_OPTIONS.map((opt) => (
+                                <SelectItem key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                      <p className="text-xs text-text-muted">
+                        Status is validated server-side against your role permissions.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <Label>Post status</Label>
+                      {currentStatusMeta && (
+                        <Badge className={currentStatusMeta.className}>{currentStatusMeta.label}</Badge>
+                      )}
+                      <p className="text-xs text-text-muted">
+                        Changing status requires admin permissions. Ask an admin to publish, archive, or unpublish this post.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             <Card>
               <CardHeader>
@@ -286,10 +315,14 @@ export function PostEditorPage() {
             <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-xs text-text-muted space-y-1.5">
               <p className="font-medium text-text-secondary">Token status</p>
               <p>The Authorization: Bearer token is automatically attached to every request by the axios interceptor. <span className="text-success">✓ active</span></p>
-              <p className="mt-1">POST_CREATE permission is required to create posts. AUTHORs, EDITORs, and ADMINs have it.</p>
+              {!isEditing && (
+                <p className="mt-1">New posts publish immediately — Post-Service doesn't accept a status on creation. Use this page again after saving to change status if you have permission.</p>
+              )}
             </div>
           </div>
         </div>
+
+        
       </form>
     </DashboardLayout>
   );
