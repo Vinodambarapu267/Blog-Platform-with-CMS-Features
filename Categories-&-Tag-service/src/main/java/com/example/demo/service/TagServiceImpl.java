@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,7 @@ public class TagServiceImpl implements TagService {
 	private TagsRepository repository;
 
 	@Override
+	@CacheEvict(value = "tags", key = "'all'")
 	public List<TagResponse> resolveTags(List<String> names) {
 
 		// Step 1 — clean the names
@@ -57,6 +59,10 @@ public class TagServiceImpl implements TagService {
 	}
 
 	@CacheEvict(value = "tags", key = "#cId")
+	@Caching(evict = {
+		@CacheEvict(value = "tags", key = "'all'"),
+		@CacheEvict(value = "popularTags", key = "'all'")
+	})
 	@Override
 	public void deleteTag(Long id) {
 		Tag tags = repository.findById(id).orElseThrow(() -> new TagNotFoundException("Tag not found"));

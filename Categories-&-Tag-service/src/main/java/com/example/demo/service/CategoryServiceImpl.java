@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -47,6 +48,10 @@ public class CategoryServiceImpl implements CategoryService {
 	}
 
 	@CachePut(value = "updateCategory", key = "#cId")
+	@Caching(evict = {
+			@CacheEvict(value = "category", key = "#cId"),
+			@CacheEvict(value = "allCategories", key = "'all'")
+	})
 	@Override
 	public Category updateCategories(Long cId, CategoryDto category) {
 		Category existedCategory = categoryRepository.findById(cId)
@@ -68,6 +73,10 @@ public class CategoryServiceImpl implements CategoryService {
 
 	@Override
 	@CacheEvict(value = "deleteCategory", key = "#cId")
+	@Caching(evict = {
+			@CacheEvict(value = "category", key = "#cId"),
+			@CacheEvict(value = "allCategories", key = "'all'")
+	})
 	public void deleteCatory(Long cId) {
 		Category category = categoryRepository.findById(cId)
 				.orElseThrow(() -> new CategoryNotFoundException("Category not Found"));
