@@ -23,4 +23,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 	List<User> findAllWithDetails();
 
 	List<User> findByStatus(UserStatus status);
+
+	@EntityGraph(attributePaths = { "postIds", "socialLinks" })
+	Optional<User> findByEmail(String email);
 }

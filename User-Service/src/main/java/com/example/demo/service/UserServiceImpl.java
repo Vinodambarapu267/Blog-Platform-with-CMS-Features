@@ -78,9 +78,12 @@ public class UserServiceImpl implements UserService {
 	public UserResponseDto createUser(UserCreateRequest user) {
 
 		Optional<User> existingUser = repository.findByUsername(user.getUsername());
-		if (existingUser.isPresent()) {
+
+		Optional<User> existingbyEmail = repository.findByEmail(user.getEmail());
+		if (existingUser.isPresent() || existingbyEmail.isPresent()) {
 			throw new UserAlreadyExistException("User already Existed");
 		}
+
 		User newUser = new User();
 		newUser.setBio(user.getBio());
 		newUser.setDisplayName(user.getDisplayName());
@@ -134,12 +137,12 @@ public class UserServiceImpl implements UserService {
 		existedUser.setSocialLinks(userDto.getSocialLinks());
 		existedUser.setEmail(userDto.getEmail());
 		if (userDto.getSocialLinks() != null) {
-		    userDto.getSocialLinks().forEach((key, value) -> {
-		        if (!value.startsWith("https://")) {
-		            throw new URLIncorrectException("Enter the secure URl's");
-		        }
-		    });
-		    existedUser.getSocialLinks().putAll(userDto.getSocialLinks());
+			userDto.getSocialLinks().forEach((key, value) -> {
+				if (!value.startsWith("https://")) {
+					throw new URLIncorrectException("Enter the secure URl's");
+				}
+			});
+			existedUser.getSocialLinks().putAll(userDto.getSocialLinks());
 		}
 		User updatedUser = repository.save(existedUser);
 		UserEvent event = new UserEvent();
@@ -277,7 +280,7 @@ public class UserServiceImpl implements UserService {
 	}
 
 	@Bean
-	public PasswordEncoder passwordEncoder() {
+	PasswordEncoder passwordEncoder() {
 		return new BCryptPasswordEncoder();
 	}
 }
